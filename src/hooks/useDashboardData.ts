@@ -33,9 +33,12 @@ export function useDashboardData() {
   const admins = useMemo(() => adminsQ.data?.data ?? [], [adminsQ.data])
 
   // Analytics — each memoized independently so only the affected slice reruns
+  // kpis computes as soon as sims+activities arrive; org counts (members/admins)
+  // start at 0 and update when org queries finish — pages that need org counts
+  // guard on orgLoading separately.
   const kpis = useMemo(
-    () => (isLoading || isError ? null : computeKPIs(sims, activities, members, admins)),
-    [isLoading, isError, sims, activities, members, admins],
+    () => (simsLoading || activitiesLoading || isError ? null : computeKPIs(sims, activities, members, admins)),
+    [simsLoading, activitiesLoading, isError, sims, activities, members, admins],
   )
   const trend = useMemo(
     () => (simsLoading || isError ? null : computeTrend(sims)),

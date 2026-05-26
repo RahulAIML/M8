@@ -73,11 +73,13 @@ export default function OverviewPage() {
   const tt = useTooltipColors()
 
   const {
-    isLoading, isError,
+    simsLoading, activitiesLoading, isError,
     kpis, trend, scoreDist, actStats, userStats,
     sims, activities, members, admins,
     refetch,
   } = useDashboardData()
+  // Page can render as soon as sims+activities arrive — org data populates later
+  const isLoading = simsLoading || activitiesLoading
   // ── Date range ──────────────────────────────
   const [from, setFrom] = useState('')
   const [to,   setTo]   = useState('')

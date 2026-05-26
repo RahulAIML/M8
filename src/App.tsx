@@ -19,20 +19,62 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 const STALE = 5 * 60 * 1000
+const GC    = 15 * 60 * 1000
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: STALE,
-      gcTime: 15 * 60 * 1000,
+      gcTime: GC,
       retry: 2,
       refetchOnWindowFocus: false,
     },
   },
 })
 
+// ─── localStorage cache persistence ───────────────────────────────────────────
+// Restores the previous session's API responses so the dashboard feels instant
+// on every page load after the first. Fresh data fetches in the background.
+const CACHE_KEY = 'sanfer-qc-v2'
+
+function restoreCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return
+    const saved: { ts: number; entries: [readonly unknown[], unknown][] } = JSON.parse(raw)
+    if (Date.now() - saved.ts > GC) return // expired — let fresh fetch run
+    saved.entries.forEach(([key, data]) => {
+      queryClient.setQueryData(key, data, { updatedAt: saved.ts })
+    })
+  } catch { /* corrupt cache — ignore */ }
+}
+
+function saveCache() {
+  try {
+    const entries: [readonly unknown[], unknown][] = queryClient
+      .getQueryCache()
+      .getAll()
+      .filter((q) => q.state.status === 'success' && q.state.data !== undefined)
+      .map((q) => [q.queryKey, q.state.data])
+    if (!entries.length) return
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), entries }))
+  } catch { /* localStorage quota — skip */ }
+}
+
+// Hydrate React Query cache from localStorage before anything renders
+restoreCache()
+
+// Persist to localStorage whenever a query succeeds
+queryClient.getQueryCache().subscribe((event) => {
+  if (event.type === 'updated' && event.query.state.status === 'success') {
+    saveCache()
+  }
+})
+// ──────────────────────────────────────────────────────────────────────────────
+
 // Fire all API requests immediately at module load — before React renders anything.
-// This eliminates the waterfall: lazy-chunk-download → component-mount → fetch.
+// Combined with cache restore above: if cache is warm, components see data on
+// first render; if cold, requests are already in-flight when components mount.
 queryClient.prefetchQuery({ queryKey: ['simulations'], queryFn: fetchSimulations, staleTime: STALE })
 queryClient.prefetchQuery({ queryKey: ['activities'],  queryFn: fetchActivities,  staleTime: STALE })
 queryClient.prefetchQuery({ queryKey: ['members'],     queryFn: fetchMembers,     staleTime: STALE })
