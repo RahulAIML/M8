@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/sanfer/:path*",
-      "destination": "https://serv.aux-rolplay.com/:path*"
+      "destination": "https://serv.aux-rolplay.com/sanfer/:path*"
     }
   ]
 }
