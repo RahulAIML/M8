@@ -384,7 +384,7 @@ export function computeLineStats(
     const lineMembers = membersByLine.get(line.id) ?? []
     const lineSims = simsByLine.get(line.id) ?? []
     const passCount = lineSims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
-    const scores = lineSims.map((s) => s.Calificacion)
+    const scores = lineSims.map((s) => Number(s.Calificacion)).filter((n) => Number.isFinite(n))
     return {
       id: line.id,
       name: line.name,
