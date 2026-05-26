@@ -144,7 +144,10 @@ export function Sidebar() {
         {/* Logo */}
         <div className="flex items-center h-16 px-4 border-b border-line/30 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/sanfer-logo.svg" alt="Sanfer" className="w-10 h-10 shrink-0" />
+            <svg viewBox="0 0 220 60" height="32" className="w-auto shrink-0" aria-label="Sanfer" xmlns="http://www.w3.org/2000/svg">
+              <text x="4" y="48" fontFamily="Georgia, 'Times New Roman', serif" fontSize="52" fontWeight="700" fontStyle="italic" fill="#CC1F2D" letterSpacing="-1">sanfer</text>
+              <text x="200" y="22" fontFamily="Arial, sans-serif" fontSize="14" fill="#CC1F2D">®</text>
+            </svg>
             <AnimatePresence>
               {!sidebarCollapsed && (
                 <motion.div
