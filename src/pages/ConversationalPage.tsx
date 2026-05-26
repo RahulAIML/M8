@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useAppStore } from '../store'
 import { useTranslation } from '../lib/i18n'
@@ -215,7 +215,10 @@ export default function ConversationalPage() {
   }
 
   const stats    = roundStats ?? []
-  const simStats = (actStats ?? []).slice().sort((a, b) => b.passRate - a.passRate)
+  const simStats = useMemo(
+    () => (actStats ?? []).slice().sort((a, b) => b.passRate - a.passRate),
+    [actStats],
+  )
 
   if (!stats.length && !simStats.length) {
     return (
@@ -232,14 +235,14 @@ export default function ConversationalPage() {
     )
   }
 
-  const radarData = stats.map((r) => ({
-    round: `${t('round')} ${r.round}`,
-    [es ? 'Puntaje Prom.' : 'Avg Score']:    r.avg,
-    [es ? 'Tasa Aprobación' : 'Pass Rate']:  r.passRate,
-  }))
-
   const avgKey  = es ? 'Puntaje Prom.'   : 'Avg Score'
   const passKey = es ? 'Tasa Aprobación' : 'Pass Rate'
+
+  const radarData = useMemo(() => stats.map((r) => ({
+    round: `${t('round')} ${r.round}`,
+    [avgKey]:  r.avg,
+    [passKey]: r.passRate,
+  })), [stats, avgKey, passKey, t])
 
   // Summary stats from simulators
   const totalSims   = simStats.reduce((s, a) => s + a.count, 0)

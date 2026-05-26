@@ -4,8 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Shell } from './components/layout/Shell'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { ChartSkeleton } from './components/ui/Skeleton'
+import { fetchActivities, fetchSimulations, fetchMembers, fetchAdmins, fetchLines } from './api/client'
+import OverviewPage from './pages/OverviewPage'
 
-const OverviewPage = lazy(() => import('./pages/OverviewPage'))
 const SimulationsPage = lazy(() => import('./pages/SimulationsPage'))
 const ConversationalPage = lazy(() => import('./pages/ConversationalPage'))
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'))
@@ -17,16 +18,26 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
+const STALE = 5 * 60 * 1000
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
+      staleTime: STALE,
       gcTime: 15 * 60 * 1000,
       retry: 2,
       refetchOnWindowFocus: false,
     },
   },
 })
+
+// Fire all API requests immediately at module load — before React renders anything.
+// This eliminates the waterfall: lazy-chunk-download → component-mount → fetch.
+queryClient.prefetchQuery({ queryKey: ['simulations'], queryFn: fetchSimulations, staleTime: STALE })
+queryClient.prefetchQuery({ queryKey: ['activities'],  queryFn: fetchActivities,  staleTime: STALE })
+queryClient.prefetchQuery({ queryKey: ['members'],     queryFn: fetchMembers,     staleTime: STALE })
+queryClient.prefetchQuery({ queryKey: ['admins'],      queryFn: fetchAdmins,      staleTime: STALE })
+queryClient.prefetchQuery({ queryKey: ['lines'],       queryFn: fetchLines,       staleTime: STALE })
 
 function PageFallback() {
   return (

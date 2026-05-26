@@ -37,6 +37,8 @@ export default defineConfig({
           'vendor-charts': ['recharts'],
           'vendor-motion': ['framer-motion'],
           'vendor-ai': ['@google/generative-ai', 'react-markdown'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-dates': ['date-fns'],
         },
       },
     },
