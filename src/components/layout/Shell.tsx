@@ -2,6 +2,7 @@ import { lazy, memo, Suspense, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { AiBubble } from '../ai/AiBubble'
+import { LoadingBanner } from '../ui/LoadingBanner'
 import { useAppStore } from '../../store'
 
 /**
@@ -46,6 +47,7 @@ export const Shell = memo(function Shell({ children }: { children: React.ReactNo
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopBar />
+        <LoadingBanner />
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-3 sm:p-5 lg:p-6 pb-6 max-w-[1600px] mx-auto page-fade">
             {children}

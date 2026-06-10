@@ -228,6 +228,10 @@ const t = {
     coaching_tip_avg2: '%. Establece el objetivo en',
     coaching_tip_pass: 'La tasa de aprobación es',
     coaching_tip_pass2: '%. Considera apoyo extra para asesores por debajo del 60%.',
+
+    // Loading banner
+    loading_data: 'Recopilando información de simuladores…',
+    loading_data_sub: 'Esto puede tomar unos segundos',
   },
   en: {
     // Branding
@@ -445,6 +449,10 @@ const t = {
     coaching_tip_avg2: '%. Set target at',
     coaching_tip_pass: 'Pass rate is',
     coaching_tip_pass2: '%. Consider extra support for advisors below 60%.',
+
+    // Loading banner
+    loading_data: 'Gathering simulation data…',
+    loading_data_sub: 'This may take a few seconds',
   },
 } as const
 
