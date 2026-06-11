@@ -6,8 +6,18 @@ import { filterTestUsers } from '../lib/analytics'
 import { CERT_LINES, CERT_WINDOW, CERT_TOTAL_SLOTS, CERT_JEFES } from '../lib/certification'
 import { cn } from '../lib/cn'
 import {
-  BadgeCheck, CalendarRange, GitBranch, Layers, PlayCircle, Users, CheckCircle2,
+  BadgeCheck, CalendarRange, GitBranch, Layers, PlayCircle, Users, CheckCircle2, Award,
 } from 'lucide-react'
+
+// Certified = above 80% on EACH of the line's 3 assigned simulators (best
+// attempt per simulator) within the certification window.
+const CERT_SCORE_BAR = 80
+
+interface CertifiedAdvisor {
+  email: string
+  name: string
+  scores: number[]   // best score per assigned sim, in slot order
+}
 
 interface LineProgress {
   tagId: number
@@ -18,6 +28,7 @@ interface LineProgress {
   completed: number      // distinct (advisor, assigned sim) pairs with a session
   passed: number         // of those, pairs whose best session passed
   sessions: number       // raw session count on the line's sims (line members only)
+  certified: CertifiedAdvisor[]
   simStats: { product: string; saexId: number; sessions: number; passed: number }[]
 }
 
@@ -48,12 +59,18 @@ export default function CertificationPage() {
     // (email|simId) → best outcome within the window
     const pairPassed = new Map<string, boolean>()
     const simsById   = new Map<number, { sessions: number; passedUsers: Set<string> }>()
+    const bestScore  = new Map<string, Map<number, number>>()  // email → simId → best %
+    const advisorName = new Map<string, string>()
     for (const s of sims) {
       const email = (s.Usuario ?? '').toLowerCase()
       if (!email) continue
+      if (s.Usuario_Nombre) advisorName.set(email, s.Usuario_Nombre)
       const key  = `${email}|${s.ID_Caso_de_Uso}`
       const pass = s.Diagnostico_Final?.toLowerCase() === 'si'
       pairPassed.set(key, (pairPassed.get(key) ?? false) || pass)
+      if (!bestScore.has(email)) bestScore.set(email, new Map())
+      const mine = bestScore.get(email)!
+      mine.set(s.ID_Caso_de_Uso, Math.max(mine.get(s.ID_Caso_de_Uso) ?? 0, s.Calificacion))
       if (!simsById.has(s.ID_Caso_de_Uso)) simsById.set(s.ID_Caso_de_Uso, { sessions: 0, passedUsers: new Set() })
       const agg = simsById.get(s.ID_Caso_de_Uso)!
       agg.sessions++
@@ -75,6 +92,19 @@ export default function CertificationPage() {
         const email = (s.Usuario ?? '').toLowerCase()
         if (lineMembers.has(email) && line.sims.some((x) => x.saexId === s.ID_Caso_de_Uso)) sessions++
       }
+      // Certified advisors: anyone whose best attempt exceeds the bar on all
+      // 3 of this line's sims — exercise-based, so roster gaps can't hide them.
+      const certified: CertifiedAdvisor[] = []
+      for (const [email, mine] of bestScore) {
+        if (line.sims.every((x) => (mine.get(x.saexId) ?? 0) > CERT_SCORE_BAR)) {
+          certified.push({
+            email,
+            name:   advisorName.get(email) ?? email,
+            scores: line.sims.map((x) => mine.get(x.saexId) ?? 0),
+          })
+        }
+      }
+      certified.sort((a, b) => a.name.localeCompare(b.name))
       return {
         tagId:       line.tagId,
         name:        line.name,
@@ -84,6 +114,7 @@ export default function CertificationPage() {
         completed,
         passed,
         sessions,
+        certified,
         simStats: line.sims.map((sim) => ({
           product:  sim.product,
           saexId:   sim.saexId,
@@ -98,10 +129,13 @@ export default function CertificationPage() {
     const expected  = lines.reduce((a, l) => a + l.expected, 0)
     const completed = lines.reduce((a, l) => a + l.completed, 0)
     const passed    = lines.reduce((a, l) => a + l.passed, 0)
+    // distinct emails — an advisor certifying under two lines counts once
+    const certifiedPeople = new Set(lines.flatMap((l) => l.certified.map((c) => c.email))).size
     return {
       expected,
       completed,
       passed,
+      certifiedPeople,
       sessions: sims.length,
       pct:      expected ? Math.round((completed / expected) * 100) : 0,
       passPct:  completed ? Math.round((passed / completed) * 100) : 0,
@@ -112,8 +146,8 @@ export default function CertificationPage() {
     return (
       <div className="space-y-6">
         <div className="h-8 w-56 skeleton rounded-lg" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="card p-5 h-24 skeleton rounded-xl" />)}
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="card p-5 h-24 skeleton rounded-xl" />)}
         </div>
         <div className="card p-5 h-96 skeleton rounded-xl" />
       </div>
@@ -138,12 +172,13 @@ export default function CertificationPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
         <CertKpi icon={GitBranch}    label={t('cert_kpi_lines')}     value={CERT_LINES.length} />
         <CertKpi icon={Layers}       label={t('cert_kpi_exercises')} value={CERT_TOTAL_SLOTS} />
         <CertKpi icon={Users}        label={t('cert_kpi_jefes')}     value={CERT_JEFES.length} />
         <CertKpi icon={PlayCircle}   label={t('cert_kpi_sessions')}  value={totals.sessions} />
         <CertKpi icon={CheckCircle2} label={t('cert_kpi_passrate')}  value={`${totals.passPct}%`} />
+        <CertKpi icon={Award}        label={t('cert_kpi_certified')} value={totals.certifiedPeople} highlight />
       </div>
 
       {/* Global progress */}
@@ -158,6 +193,46 @@ export default function CertificationPage() {
           <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${totals.pct}%` }} />
         </div>
         <p className="text-[11px] text-slate-600 mt-2">{t('cert_legend')}</p>
+      </div>
+
+      {/* Certified advisors — count + names grouped by line */}
+      <div className="card p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+            <Award className="w-4 h-4 text-success" />
+            {t('cert_certified_title')}
+            <span className="text-success font-bold tabular-nums">{totals.certifiedPeople}</span>
+          </h3>
+        </div>
+        <p className="text-[11px] text-slate-600 mb-4">{t('cert_certified_def')}</p>
+        {totals.certifiedPeople === 0 ? (
+          <p className="text-sm text-slate-500">{t('cert_certified_none')}</p>
+        ) : (
+          <div className="space-y-4">
+            {lines.filter((l) => l.certified.length > 0).map((line) => (
+              <div key={line.tagId}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 capitalize">{line.name}</span>
+                  <span className="text-[10px] text-slate-600">({line.jefe})</span>
+                  <span className="text-[10px] font-bold text-success tabular-nums">{line.certified.length}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {line.certified.map((c) => (
+                    <span
+                      key={c.email}
+                      className="inline-flex items-center gap-1.5 text-xs bg-success/5 border border-success/20 text-slate-300 rounded-full pl-2.5 pr-1.5 py-1"
+                    >
+                      {c.name}
+                      <span className="text-[10px] font-semibold text-success bg-success/10 rounded-full px-1.5 py-0.5 tabular-nums">
+                        {c.scores.join(' · ')}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Assignment matrix grouped by jefe */}
@@ -178,6 +253,11 @@ export default function CertificationPage() {
                       <span className="text-[10px] text-slate-600 shrink-0">
                         {line.memberCount} {t('cert_col_members').toLowerCase()}
                       </span>
+                      {line.certified.length > 0 && (
+                        <span className="flex items-center gap-0.5 text-[10px] font-bold text-success shrink-0" title={t('cert_kpi_certified')}>
+                          <Award className="w-3 h-3" />{line.certified.length}
+                        </span>
+                      )}
                     </div>
                     <span className={cn(
                       'text-xs font-bold shrink-0 tabular-nums',
@@ -216,19 +296,20 @@ export default function CertificationPage() {
   )
 }
 
-function CertKpi({ icon: Icon, label, value }: {
+function CertKpi({ icon: Icon, label, value, highlight = false }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   value: string | number
+  highlight?: boolean
 }) {
   return (
-    <div className="card p-4">
+    <div className={highlight ? 'card p-4 border border-success/30' : 'card p-4'}>
       <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-          <Icon className="w-4 h-4 text-accent" />
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${highlight ? 'bg-success/10' : 'bg-accent/10'}`}>
+          <Icon className={`w-4 h-4 ${highlight ? 'text-success' : 'text-accent'}`} />
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-bold text-slate-100 leading-tight tabular-nums">{value}</p>
+          <p className={`text-lg font-bold leading-tight tabular-nums ${highlight ? 'text-success' : 'text-slate-100'}`}>{value}</p>
           <p className="text-[11px] text-slate-500 truncate">{label}</p>
         </div>
       </div>
