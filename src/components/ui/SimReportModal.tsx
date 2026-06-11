@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
-import { X, Download, FileText } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, Download, FileText, Loader2 } from 'lucide-react'
 import { useSimReport } from '../../api/queries'
 import { useTranslation } from '../../lib/i18n'
+import { downloadReportPDF } from '../../lib/reportPdf'
 import type { Language } from '../../store'
-import type { SimReport } from '../../api/types'
 
 /** Verdict answers are short "Si"/"No" — color them like the status badges */
 function verdictColor(a: string): string | null {
@@ -11,41 +11,6 @@ function verdictColor(a: string): string | null {
   if (v === 'si' || v === 'sí') return 'text-success'
   if (v === 'no') return 'text-danger'
   return null
-}
-
-function buildDownloadHTML(r: SimReport): string {
-  const rows = r.Secciones.map((s) => `
-    <h3>${s.q}</h3>
-    <p>${s.a.replace(/\n/g, '<br>')}</p>`).join('\n')
-  return `<!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8">
-<title>Reporte — ${r.Usuario_Nombre ?? ''} — ${r.Titulo}</title>
-<style>
-  body{font-family:Arial,Helvetica,sans-serif;background:#f4f5f7;margin:0;padding:24px;color:#1e293b}
-  .doc{max-width:720px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-  .head{background:#1b2a49;color:#fff;padding:24px 28px}
-  .head h1{margin:0 0 6px;font-size:20px}
-  .head p{margin:0;font-size:13px;opacity:.8}
-  .body{padding:20px 28px 28px}
-  h3{font-size:14px;color:#1b2a49;margin:18px 0 6px}
-  p{font-size:13px;line-height:1.55;margin:0;color:#475569}
-</style></head><body><div class="doc">
-  <div class="head">
-    <h1>${r.Titulo}</h1>
-    <p>${r.Usuario_Nombre ?? ''} · ${(r.Fecha_y_Hora ?? '').substring(0, 16)} · ${r.Calificacion}%</p>
-  </div>
-  <div class="body">${rows}</div>
-</div></body></html>`
-}
-
-function downloadReport(r: SimReport) {
-  const blob = new Blob([buildDownloadHTML(r)], { type: 'text/html;charset=utf-8' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = `reporte_sim_${r.ID_Sim}.html`
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 interface Props {
@@ -57,6 +22,13 @@ interface Props {
 export function SimReportModal({ simId, language, onClose }: Props) {
   const t = useTranslation(language)
   const { data: report, isLoading, isError } = useSimReport(simId)
+  const [pdfBusy, setPdfBusy] = useState(false)
+
+  async function handleDownload() {
+    if (!report || pdfBusy) return
+    setPdfBusy(true)
+    try { await downloadReportPDF(report) } finally { setPdfBusy(false) }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -143,11 +115,13 @@ export function SimReportModal({ simId, language, onClose }: Props) {
             {t('report_close')}
           </button>
           <button
-            onClick={() => report && downloadReport(report)}
-            disabled={!report}
+            onClick={handleDownload}
+            disabled={!report || pdfBusy}
             className="btn-primary flex items-center gap-1.5 text-xs px-3 py-2 disabled:opacity-40"
           >
-            <Download className="w-3.5 h-3.5" />
+            {pdfBusy
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Download className="w-3.5 h-3.5" />}
             {t('report_download')}
           </button>
         </div>

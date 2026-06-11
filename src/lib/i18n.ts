@@ -248,7 +248,7 @@ const t = {
     // Session report modal
     report_btn: 'Ver reporte',
     report_title: 'Reporte de la simulación',
-    report_download: 'Descargar reporte',
+    report_download: 'Descargar PDF',
     report_loading: 'Cargando reporte…',
     report_error: 'No se pudo cargar el reporte.',
     report_close: 'Cerrar',
@@ -510,7 +510,7 @@ const t = {
     // Session report modal
     report_btn: 'View report',
     report_title: 'Simulation report',
-    report_download: 'Download report',
+    report_download: 'Download PDF',
     report_loading: 'Loading report…',
     report_error: 'Could not load the report.',
     report_close: 'Close',

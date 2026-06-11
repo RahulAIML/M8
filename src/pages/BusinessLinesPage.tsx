@@ -90,13 +90,17 @@ export default function BusinessLinesPage() {
     )
   }
 
-  const chartData = lineStats.slice(0, 10).map((l) => ({
+  // Every line with at least one simulation — never cap the list, the charts
+  // grow vertically instead (15 certification lines must all be visible).
+  const chartData = lineStats.filter((l) => l.simCount > 0).map((l) => ({
     name: l.name.length > 18 ? l.name.slice(0, 18) + '…' : l.name,
     fullName: l.name,
     simCount: l.simCount,
     avgScore: l.avgScore,
     passRate: l.passRate,
   }))
+  // ~30px per bar keeps labels readable regardless of how many lines exist
+  const barChartHeight = Math.max(256, chartData.length * 30 + 24)
 
   const radarData = lineStats.slice(0, 6).map((l) => ({
     line: l.name.length > 12 ? l.name.slice(0, 12) + '…' : l.name,
@@ -165,7 +169,7 @@ export default function BusinessLinesPage() {
           <h3 className="text-sm font-semibold text-slate-200 mb-4">
             {es ? 'Simulaciones por Línea' : 'Simulations by Line'}
           </h3>
-          <div className="h-64 overflow-hidden">
+          <div className="overflow-hidden" style={{ height: barChartHeight }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -191,7 +195,7 @@ export default function BusinessLinesPage() {
           <h3 className="text-sm font-semibold text-slate-200 mb-4">
             {es ? 'Puntaje Promedio por Línea' : 'Average Score by Line'}
           </h3>
-          <div className="h-64 overflow-hidden">
+          <div className="overflow-hidden" style={{ height: barChartHeight }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
