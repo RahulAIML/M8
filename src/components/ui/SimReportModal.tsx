@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, ExternalLink, Loader2, FileText, CheckCircle2, XCircle, Stethoscope, User, ClipboardList } from 'lucide-react'
 import { useSimReport } from '../../api/queries'
 import { useTranslation } from '../../lib/i18n'
@@ -141,7 +142,7 @@ export function SimReportModal({ simId, language, onClose }: Props) {
     if (tab === 'platform') setIframeLoading(true)
   }, [tab])
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4"
       onClick={onClose}
@@ -295,6 +296,7 @@ export function SimReportModal({ simId, language, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

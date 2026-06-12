@@ -66,7 +66,14 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
 // Activity names come from the bridge (demorp6 usecases table) — the single
 // source of truth for the 44 certification exercises.
 export async function fetchActivities(signal?: AbortSignal): Promise<ActivitiesResponse> {
-  return fetchJSON<ActivitiesResponse>(`${BRIDGE_BASE}/?action=activities.demorp6&ids=${IDS_CSV}`, signal)
+  const resp = await fetchJSON<ActivitiesResponse>(`${BRIDGE_BASE}/?action=activities.demorp6&ids=${IDS_CSV}`, signal)
+  return {
+    ...resp,
+    data: (resp.data ?? []).map((a) => ({
+      ...a,
+      Caso_de_Uso: a.Caso_de_Uso.replace(/^Sanfer\s*-\s*/i, ''),
+    })),
+  }
 }
 
 export async function fetchSimulations(
@@ -88,7 +95,12 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
   const resp = await fetchJSON<{ ok: boolean; data: SimReport }>(
     `${BRIDGE_BASE}/?action=sim.report&sim_id=${simId}`, signal,
   )
-  return resp.data
+  const d = resp.data
+  return {
+    ...d,
+    Producto: d.Producto?.replace(/^Sanfer\s*-\s*/i, '') ?? d.Producto,
+    Titulo:   d.Titulo?.replace(/^Sanfer\s*-\s*/i, '')   ?? d.Titulo,
+  }
 }
 
 // Members come via the bridge org proxy — trimmed to the fields the dashboard
