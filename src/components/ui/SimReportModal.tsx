@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ExternalLink, Loader2, FileText, CheckCircle2, XCircle, Stethoscope, User, ClipboardList } from 'lucide-react'
+import { X, ExternalLink, Loader2, FileText, CheckCircle2, XCircle, Stethoscope, User, ClipboardList, Download } from 'lucide-react'
 import { useSimReport } from '../../api/queries'
 import { useTranslation } from '../../lib/i18n'
 import type { Language } from '../../store'
@@ -142,6 +142,49 @@ export function SimReportModal({ simId, language, onClose }: Props) {
     if (tab === 'platform') setIframeLoading(true)
   }, [tab])
 
+  function handleDownload() {
+    if (tab === 'platform' || !report) { window.open(url, '_blank'); return }
+    const scoreColor = score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626'
+    const rondasHtml = rondas.map((r) => `
+      <div class="ronda">
+        <div class="ronda-hdr">
+          ${es ? `Interacción ${r.n}` : `Interaction ${r.n}`}
+          <span class="pts">${r.puntos ?? '–'} / ${r.max_puntos} pt</span>
+        </div>
+        ${r.pregunta ? `<div class="box doc"><b>${es ? 'Médico' : 'Doctor'}:</b> ${r.pregunta}</div>` : ''}
+        ${r.respuesta_rep ? `<div class="box rep"><b>${es ? 'Asesor' : 'Sales Rep'}:</b> ${r.respuesta_rep}</div>` : '<div class="box rep"><em style="color:#999">${es ? "Sin transcripción" : "No transcription"}</em></div>'}
+        ${r.criterio ? `<div class="field"><b>${es ? 'Criterio' : 'Criteria'}:</b> ${r.criterio}</div>` : ''}
+        ${r.respuesta_modelo ? `<div class="field"><b>${es ? 'Respuesta modelo' : 'Model answer'}:</b> ${r.respuesta_modelo}</div>` : ''}
+        ${r.analisis ? `<div class="field"><b>${es ? 'Análisis' : 'Analysis'}:</b> ${r.analisis}</div>` : ''}
+      </div>`).join('')
+    const win = window.open('', '_blank', 'width=900,height=720')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <title>${product} — ${report.Usuario_Nombre}</title>
+      <style>
+        body{font-family:Arial,sans-serif;color:#111;margin:0;padding:24px;font-size:14px}
+        h1{font-size:18px;margin:0 0 4px}
+        .meta{color:#666;font-size:12px;margin-bottom:20px}
+        .score{font-weight:700;color:${scoreColor}}
+        .ronda{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid}
+        .ronda-hdr{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;display:flex;justify-content:space-between;margin-bottom:10px}
+        .pts{color:#111}
+        .box{border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:13px;line-height:1.5}
+        .doc{background:#eff6ff;border:1px solid #bfdbfe}
+        .rep{background:#f0fdf4;border:1px solid #bbf7d0}
+        .field{font-size:12px;color:#444;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0}
+        .field b{display:block;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+        @media print{body{padding:0}}
+      </style></head><body>
+      <h1>${product}</h1>
+      <div class="meta">${report.Usuario_Nombre} &nbsp;·&nbsp; ${(report.Fecha_y_Hora ?? '').substring(0, 16)} &nbsp;·&nbsp; <span class="score">${score}%</span></div>
+      ${rondasHtml}
+    </body></html>`)
+    win.document.close()
+    win.focus()
+    setTimeout(() => win.print(), 350)
+  }
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4"
@@ -182,6 +225,13 @@ export function SimReportModal({ simId, language, onClose }: Props) {
                 )}
               </div>
             </div>
+            <button
+              onClick={handleDownload}
+              title={t('report_download')}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0"
+            >
+              <Download className="w-4 h-4" />
+            </button>
             <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0">
               <X className="w-4 h-4" />
             </button>

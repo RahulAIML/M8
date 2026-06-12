@@ -8,7 +8,7 @@ import { DateRangeFilter } from '../components/ui/DateRangeFilter'
 import { SimReportModal } from '../components/ui/SimReportModal'
 import {
   Search, Calendar, CheckCircle2, XCircle, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, BadgeCheck, FileText, Target, ListChecks, Gauge, Lock,
+  ChevronLeft, ChevronRight, BadgeCheck, FileText, Target, ListChecks, Gauge, Lock, Download,
 } from 'lucide-react'
 import { cn } from '../lib/cn'
 
@@ -204,7 +204,7 @@ export default function SimulationsPage() {
                     {expanded && (
                       <tr className="bg-surface/50">
                         <td colSpan={6} className="px-4 py-4">
-                          <div className="flex justify-end mb-3">
+                          <div className="flex justify-end gap-2 mb-3">
                             <button
                               onClick={(e) => { e.stopPropagation(); setReportSimId(s.ID_Sim) }}
                               className="flex items-center gap-1.5 text-xs text-accent border border-accent/30 hover:bg-accent/10 rounded-lg px-3 py-1.5 transition-colors"
@@ -212,6 +212,16 @@ export default function SimulationsPage() {
                               <FileText className="w-3.5 h-3.5" />
                               {t('report_btn')}
                             </button>
+                            <a
+                              href={`https://improveyourpitchbeta.net/demorp6/reportes/visor-usecase.php?&saex=${s.ID_Sim}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1.5 text-xs text-slate-400 border border-line/50 hover:text-slate-100 hover:border-line rounded-lg px-3 py-1.5 transition-colors"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              {t('report_download')}
+                            </a>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {[1, 2, 3, 4, 5, 6].map((r) => {
