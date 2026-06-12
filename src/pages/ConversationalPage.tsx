@@ -1,12 +1,13 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useAppStore } from '../store'
 import { useTranslation } from '../lib/i18n'
+import { useObjections } from '../api/queries'
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
 } from 'recharts'
-import { MessageSquare, BarChart2, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Activity } from 'lucide-react'
+import { MessageSquare, BarChart2, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Activity, Target, ArrowUpDown } from 'lucide-react'
 import { useChartColors } from '../lib/chartTheme'
 import { TooltipShell, TRow, TTitle, useTooltipColors, type TooltipColors } from '../components/charts/TooltipShell'
 import type { ActivityStat } from '../lib/analytics'
@@ -179,14 +180,19 @@ const SimulatorCard = memo(function SimulatorCard({ stat, rank, es }: { stat: Ac
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ConversationalPage() {
-  const language = useAppStore((s) => s.language)
+  const language  = useAppStore((s) => s.language)
+  const dateFrom  = useAppStore((s) => s.dateFrom)
+  const dateTo    = useAppStore((s) => s.dateTo)
   const t = useTranslation(language)
   const c  = useChartColors()
   const tt = useTooltipColors()
   const es = language === 'es'
 
   const { simsLoading, activitiesLoading, isError, roundStats, actStats, refetch } = useDashboardData()
+  const objQ = useObjections(dateFrom, dateTo)
   const isLoading = simsLoading || activitiesLoading
+
+  const [objSortAsc, setObjSortAsc] = useState(true)  // true = worst first (ascending pass_rate)
 
   // ── ALL hooks BEFORE any conditional return (Rules of Hooks) ─────────────────
   const stats    = roundStats ?? []
@@ -216,6 +222,18 @@ export default function ConversationalPage() {
     : 0
   const strongCount = simStats.filter((a) => getTier(a) === 'strong').length
   const attnCount   = simStats.filter((a) => getTier(a) === 'needs-attention').length
+
+  // Objection stats — name lookup from actStats
+  const actNameById = useMemo(
+    () => new Map((actStats ?? []).map((a) => [a.id, a.name])),
+    [actStats],
+  )
+  const objStats = useMemo(() => {
+    const raw = objQ.data ?? []
+    return objSortAsc
+      ? raw.slice().sort((a, b) => a.pass_rate - b.pass_rate)   // worst first
+      : raw.slice().sort((a, b) => b.pass_rate - a.pass_rate)   // best first
+  }, [objQ.data, objSortAsc])
   // ── End of hook declarations ─────────────────────────────────────────────────
 
   if (isLoading) {
@@ -401,6 +419,105 @@ export default function ConversationalPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ── Objection Handling Analysis ─────────────────────────────────── */}
+      {(objStats.length > 0 || objQ.isLoading) && (
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-accent" />
+              <div>
+                <h2 className="text-base font-semibold text-slate-100">
+                  {es ? 'Manejo de Objeciones' : 'Objection Handling'}
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  {es
+                    ? 'Tasa de éxito por tipo de objeción del médico'
+                    : 'Success rate per doctor objection type'}
+                </p>
+              </div>
+            </div>
+            {objStats.length > 0 && (
+              <button
+                onClick={() => setObjSortAsc((v) => !v)}
+                className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-lg border border-line/50 text-slate-400 hover:text-slate-200 hover:border-line transition-colors self-start sm:self-auto"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                {objSortAsc
+                  ? (es ? 'Peores primero' : 'Worst first')
+                  : (es ? 'Mejores primero' : 'Best first')}
+              </button>
+            )}
+          </div>
+
+          {objQ.isLoading ? (
+            <div className="card p-5 h-48 skeleton rounded-xl" />
+          ) : (
+            <div className="card p-5">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[580px] text-sm">
+                  <thead>
+                    <tr className="border-b border-line/30 text-left">
+                      <th className="pb-2 text-[11px] font-medium text-slate-600 pr-3 w-8">#</th>
+                      <th className="pb-2 text-[11px] font-medium text-slate-600 pr-4">
+                        {es ? 'Objeción del Médico' : 'Doctor Objection'}
+                      </th>
+                      <th className="pb-2 text-[11px] font-medium text-slate-600 pr-4">
+                        {es ? 'Simulador' : 'Simulator'}
+                      </th>
+                      <th className="pb-2 text-[11px] font-medium text-slate-600 pr-4 text-right">
+                        {es ? 'Veces' : 'Times'}
+                      </th>
+                      <th className="pb-2 text-[11px] font-medium text-slate-600 text-right">
+                        {es ? 'Tasa de Éxito' : 'Success Rate'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line/20">
+                    {objStats.map((obj, idx) => {
+                      const rate = obj.pass_rate
+                      const color = rate >= 70 ? 'text-success' : rate >= 40 ? 'text-yellow-400' : 'text-danger'
+                      const barColor = rate >= 70 ? 'bg-success' : rate >= 40 ? 'bg-yellow-400' : 'bg-danger'
+                      const simName = actNameById.get(obj.usecase_id) ?? `#${obj.usecase_id}`
+                      return (
+                        <tr key={`${obj.usecase_id}|${obj.objection_text}`} className="hover:bg-white/[0.015] transition-colors">
+                          <td className="py-2.5 pr-3 text-slate-600 text-[11px] tabular-nums">{idx + 1}</td>
+                          <td className="py-2.5 pr-4 text-slate-300 text-[12px] max-w-[280px]">
+                            <span className="line-clamp-2 leading-snug">{obj.objection_text}</span>
+                          </td>
+                          <td className="py-2.5 pr-4 text-slate-500 text-[11px] max-w-[160px]">
+                            <span className="line-clamp-1">{simName}</span>
+                          </td>
+                          <td className="py-2.5 pr-4 text-slate-400 text-right tabular-nums text-[12px]">
+                            {obj.count}
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-20 h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${barColor}`} style={{ width: `${rate}%` }} />
+                              </div>
+                              <span className={`tabular-nums text-[12px] font-semibold w-9 text-right ${color}`}>
+                                {rate}%
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {objStats.length > 0 && (
+                <p className="text-[10px] text-slate-600 mt-3">
+                  {es
+                    ? `${objStats.length} objeciones únicas · Las tasas de éxito bajas indican donde enfocar el coaching`
+                    : `${objStats.length} unique objections · Low success rates indicate where to focus coaching`}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

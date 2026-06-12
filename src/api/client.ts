@@ -3,6 +3,7 @@ import type {
   AdminsResponse,
   LinesResponse,
   MembersResponse,
+  ObjectionsResponse,
   Simulation,
   SimReport,
 } from './types'
@@ -118,4 +119,14 @@ export async function fetchAdmins(signal?: AbortSignal): Promise<AdminsResponse>
 
 export async function fetchLines(signal?: AbortSignal): Promise<LinesResponse> {
   return fetchJSON<LinesResponse>(`${BASE}/data/${CLIENT}/tag1`, signal)
+}
+
+export async function fetchObjections(
+  from?: string | null,
+  to?: string | null,
+  signal?: AbortSignal,
+): Promise<ObjectionsResponse> {
+  const { from: effFrom, to: effTo } = resolveEffectiveDates(from ?? null, to ?? null)
+  const qs = `action=objections.demorp6&ids=${IDS_CSV}&date_from=${effFrom}&date_to=${effTo}`
+  return fetchJSON<ObjectionsResponse>(`${BRIDGE_BASE}/?${qs}`, signal)
 }

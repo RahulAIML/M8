@@ -136,3 +136,20 @@ export interface LinesResponse {
   database?: string
   table?: string
 }
+
+// ─────────────────────────────────────────────
+// Objection handling stats (bridge action=objections.demorp6)
+// ─────────────────────────────────────────────
+export interface ObjectionStat {
+  usecase_id: number
+  objection_text: string
+  count: number       // sessions where this objection appeared
+  pass_count: number  // sessions where rep scored 1 on it
+  pass_rate: number   // pass_count / scored × 100 (rounded int)
+}
+
+export interface ObjectionsResponse {
+  ok: boolean
+  data: ObjectionStat[]
+  total_records: number
+}

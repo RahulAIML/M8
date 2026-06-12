@@ -11,11 +11,10 @@ interface Props {
   className?: string
 }
 
-const PRESETS = [
-  { label: 'All', months: null as number | null },
-  { label: '3M',  months: 3 },
-  { label: '6M',  months: 6 },
-  { label: '12M', months: 12 },
+const PRESETS: { label: string; days: number | null }[] = [
+  { label: 'All', days: null },
+  { label: '15D', days: 15 },
+  { label: '7D',  days: 7 },
 ]
 
 export function DateRangeFilter({ from, to, onApply, label, className }: Props) {
@@ -29,12 +28,11 @@ export function DateRangeFilter({ from, to, onApply, label, className }: Props) 
   const isPending = pendingFrom !== from || pendingTo !== to
   const isActive  = !!(from || to)
 
-  function applyPreset(months: number | null) {
+  function applyPreset(days: number | null) {
     const today = new Date().toISOString().slice(0, 10)
-    // "All" = everything since the first recorded session, not the default window
-    if (months === null) { onApply(DATA_EPOCH, today); return }
+    if (days === null) { onApply(DATA_EPOCH, today); return }
     const past = new Date()
-    past.setMonth(past.getMonth() - months)
+    past.setDate(past.getDate() - days)
     onApply(past.toISOString().slice(0, 10), today)
   }
 
@@ -56,7 +54,7 @@ export function DateRangeFilter({ from, to, onApply, label, className }: Props) 
       {PRESETS.map((p) => (
         <button
           key={p.label}
-          onClick={() => applyPreset(p.months)}
+          onClick={() => applyPreset(p.days)}
           className="text-[11px] px-2 py-1 rounded border border-line/50 text-slate-500 hover:text-slate-200 hover:border-line transition-colors leading-none"
         >
           {p.label}

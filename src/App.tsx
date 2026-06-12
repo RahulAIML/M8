@@ -37,8 +37,8 @@ const queryClient = new QueryClient({
 // ─── localStorage cache persistence ───────────────────────────────────────────
 // Restores the previous session's API responses so the dashboard feels instant
 // on every page load after the first. Fresh data fetches in the background.
-// v4: simulations queryKey now includes the date range
-const CACHE_KEY = 'sanfer-qc-v4'
+// v5: DATA_EPOCH changed to 2026-06-01; objections query added
+const CACHE_KEY = 'sanfer-qc-v5'
 
 function restoreCache() {
   try {

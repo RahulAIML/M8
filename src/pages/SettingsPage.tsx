@@ -81,9 +81,6 @@ export default function SettingsPage() {
           {[
             { label: es ? 'Nombre' : 'Name', value: es ? 'Sanfer Inteligencia de Entrenamiento IA' : 'Sanfer AI Training Intelligence' },
             { label: es ? 'Versión' : 'Version', value: '2.0.0' },
-            { label: es ? 'Motor Simulador' : 'Simulator Engine', value: 'serv.aux-rolplay.com' },
-            { label: es ? 'Motor Rolplay' : 'Rolplay Engine', value: 'rolplay.net' },
-            { label: es ? 'Asistente IA' : 'AI Assistant', value: 'Gemini 2.5 Flash' },
           ].map((row) => (
             <div key={row.label} className="flex items-center justify-between text-sm border-b border-line/20 pb-2 last:border-0 last:pb-0">
               <span className="text-slate-500">{row.label}</span>

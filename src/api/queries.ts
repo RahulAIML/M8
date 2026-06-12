@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { fetchActivities, fetchAdmins, fetchLines, fetchMembers, fetchSimReport, fetchSimulations } from './client'
+import { fetchActivities, fetchAdmins, fetchLines, fetchMembers, fetchObjections, fetchSimReport, fetchSimulations } from './client'
 import { resolveEffectiveDates } from '../lib/dateUtils'
 
 // ─────────────────────────────────────────────
@@ -105,6 +105,19 @@ export function useSimReport(simId: number | null) {
     enabled:   simId !== null,
     staleTime: Infinity,
     gcTime:    1_000 * 60 * 30,
+  })
+}
+
+/** Objection handling stats for the requested date range */
+export function useObjections(dateFrom: string | null = null, dateTo: string | null = null) {
+  const { from, to } = resolveEffectiveDates(dateFrom, dateTo)
+  return useQuery({
+    queryKey:        ['objections', from, to],
+    queryFn:         ({ signal }) => fetchObjections(from, to, signal),
+    staleTime:       STALE.simulations,
+    gcTime:          GC.simulations,
+    placeholderData: keepPreviousData,
+    select:          (res) => res.data,
   })
 }
 
