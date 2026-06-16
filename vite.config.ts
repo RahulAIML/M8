@@ -4,9 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5174,
+    port: 5175,
     proxy: {
-      '/sanfer': {
+      '/m8': {
         target: 'https://serv.aux-rolplay.com',
         changeOrigin: true,
         secure: true,
@@ -16,10 +16,10 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: parseInt(process.env.PORT ?? '4174'),
-    allowedHosts: ['dashboard-sanfer.onrender.com', 'sanfer-dashboard.onrender.com'],
+    port: parseInt(process.env.PORT ?? '4175'),
+    allowedHosts: ['dashboard-m8.onrender.com', 'm8-dashboard.onrender.com'],
     proxy: {
-      '/sanfer': {
+      '/m8': {
         target: 'https://serv.aux-rolplay.com',
         changeOrigin: true,
         secure: true,

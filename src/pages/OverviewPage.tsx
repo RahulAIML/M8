@@ -6,7 +6,7 @@ import {
 } from '../lib/analytics'
 import { useAppStore } from '../store'
 import { useTranslation } from '../lib/i18n'
-import { CERT_TOTAL_SLOTS } from '../lib/certification'
+import { M8_EXERCISES } from '../lib/certification'
 import { DateRangeFilter } from '../components/ui/DateRangeFilter'
 import { downloadCSV, csvDate } from '../lib/csvExport'
 import {
@@ -306,9 +306,7 @@ export default function OverviewPage() {
         <KpiCard icon={BarChart3}    label={t('kpi_avg_score')}          value={`${activeKpis!.averageScore}%`} sub={t('sub_overall')}           color="violet"  />
         <KpiCard icon={CheckCircle2} label={t('kpi_pass_rate')}          value={`${activeKpis!.passRate}%`}     sub={t('sub_sessions_passed')}   color="pass"    />
         <KpiCard icon={Users}        label={t('kpi_active_advisors')}    value={activeKpis!.activeAdvisors}     sub={t('sub_with_simulations')}  color="indigo"  />
-        {/* Business count is 45 assignment slots (Excel "Ejercicios totales"):
-            exercise #420 is assigned to two líneas, so unique simulators = 44 */}
-        <KpiCard icon={BookOpen}     label={t('kpi_total_activities')}   value={CERT_TOTAL_SLOTS}               sub={t('sub_cert_slots')}        color="accent"  />
+        <KpiCard icon={BookOpen}     label={t('kpi_total_activities')}   value={M8_EXERCISES.length}            sub={t('sub_cert_slots')}        color="accent"  />
         <KpiCard icon={UserCheck}    label={t('kpi_total_members')}      value={kpis?.totalMembers ?? '…'}      sub={t('sub_registered')}        color="violet"  />
       </div>
 

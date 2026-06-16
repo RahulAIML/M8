@@ -9,20 +9,15 @@ import type {
 } from './types'
 import { inDateWindow, resolveEffectiveDates } from '../lib/dateUtils'
 
-const BASE        = '/sanfer/api'
-const BRIDGE_BASE = '/sanfer/bridge'
-const CLIENT      = 'rolplay_sanfer_robin'
+const BASE        = '/m8/api'
+const BRIDGE_BASE = '/m8/bridge'
+// TODO: confirm the M8 platform client tag from the Rolplay org settings
+const CLIENT      = 'rolplay_m8'
 
-// 44 unique certification exercise IDs (June 2026 Excel — 15 per simulator × 3 simulators;
-// ID 420 appears in Sim 1 and Sim 3, giving 45 slots but 44 unique values).
-const SANFER_IDS = [
-  390, 399, 402, 403, 405, 406, 408, 409, 410, 411, 413, 419, 420, 421,
-  423, 428, 432, 433, 436, 439, 440, 445, 446, 448, 449, 453, 454, 455,
-  457, 460, 461, 462, 464, 465, 467, 468, 481, 484, 488, 489, 490, 491,
-  492, 493,
-]
+// M8 Pharma exercise IDs — Legalon + Abcito (Simulador + Coach) + Combined Coach
+const M8_IDS = [3129, 3131, 3132, 3155, 3161]
 
-const IDS_CSV = SANFER_IDS.join(',')
+const IDS_CSV = M8_IDS.join(',')
 
 /** Extract YYYY-MM-DD from a date string regardless of T or space separator. */
 export function simDate(fecha: string | null | undefined): string {
@@ -43,8 +38,7 @@ function decodeEntities(s: string | null | undefined): string {
   return entityBox.value
 }
 
-// Internal platform accounts (Usuario Dev/Tester/Demo/Contenido @rolplay.net and
-// any rolplay-domain address) are admin tooling, not Sanfer participants.
+// Internal platform accounts (rolplay-domain addresses) are admin tooling, not M8 participants.
 function isInternalEmail(email: string | null | undefined): boolean {
   return /rolplay/i.test(email ?? '')
 }
@@ -71,7 +65,7 @@ export async function fetchActivities(signal?: AbortSignal): Promise<ActivitiesR
     ...resp,
     data: (resp.data ?? []).map((a) => ({
       ...a,
-      Caso_de_Uso: a.Caso_de_Uso.replace(/^Sanfer\s*-\s*/i, ''),
+      Caso_de_Uso: a.Caso_de_Uso.replace(/^M8\s*-\s*/i, ''),
     })),
   }
 }
@@ -98,8 +92,8 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
   const d = resp.data
   return {
     ...d,
-    Producto: d.Producto?.replace(/^Sanfer\s*-\s*/i, '') ?? d.Producto,
-    Titulo:   d.Titulo?.replace(/^Sanfer\s*-\s*/i, '')   ?? d.Titulo,
+    Producto: d.Producto?.replace(/^M8\s*-\s*/i, '') ?? d.Producto,
+    Titulo:   d.Titulo?.replace(/^M8\s*-\s*/i, '')   ?? d.Titulo,
   }
 }
 

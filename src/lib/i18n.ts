@@ -4,7 +4,7 @@ const t = {
   es: {
     // Branding (TopBar / Sidebar)
     platform_tagline: 'Plataforma de Entrenamiento en Ventas',
-    sidebar_tagline: 'Simulador de Ventas Sanfer',
+    sidebar_tagline: 'Simulador de Ventas M8',
 
     // Nav
     nav_overview: 'Vista General',
@@ -36,7 +36,7 @@ const t = {
     sub_with_simulations: 'con simulaciones',
     sub_registered: 'registrados',
     sub_active: 'activos',
-    sub_cert_slots: '15 líneas × 3 simuladores',
+    sub_cert_slots: '2 productos × 2 ejercicios + 1 combinado',
 
     // Charts / Sections
     score_trend: 'Tendencia de Puntaje',
@@ -88,7 +88,7 @@ const t = {
 
     // Pages
     page_overview_title: 'Vista General',
-    page_overview_subtitle: 'Resumen ejecutivo del simulador de ventas Sanfer',
+    page_overview_subtitle: 'Resumen ejecutivo del simulador de ventas M8 Pharma',
     page_sims_title: 'Simulaciones',
     page_sims_subtitle: 'Registro completo de sesiones de simulación',
     page_conv_title: 'Inteligencia Conversacional',
@@ -109,7 +109,7 @@ const t = {
     ai_subtitle: 'Impulsado por Rolplay',
 
     ai_placeholder: 'Pregunta sobre el rendimiento del equipo...',
-    ai_greeting: '¡Hola! Soy el asistente IA de Sanfer. Puedo ayudarte a analizar el rendimiento del equipo comercial, identificar áreas de mejora, comparar líneas y generar perspectivas sobre las simulaciones de ventas. ¿En qué te puedo ayudar?',
+    ai_greeting: '¡Hola! Soy el asistente IA de M8 Pharma. Puedo ayudarte a analizar el rendimiento del equipo comercial, identificar áreas de mejora y generar perspectivas sobre las simulaciones de ventas de Legalon y Abcito. ¿En qué te puedo ayudar?',
     ai_no_key: 'Configura VITE_GEMINI_API_KEY en tu archivo .env para habilitar el Asistente IA.',
     ai_error: 'Error al conectar con Gemini. Verifica tu API key.',
     ai_thinking: 'Analizando datos...',
@@ -256,9 +256,9 @@ const t = {
 
     // Certification page
     nav_certification: 'Certificación',
-    cert_title: 'Certificación Sanfer',
-    cert_subtitle: 'Junio 2026 — del 8 al 22 de junio',
-    cert_window_badge: 'Período: 8 – 22 jun 2026',
+    cert_title: 'Certificación M8 Pharma',
+    cert_subtitle: 'Legalon · Abcito · Coach Combinado',
+    cert_window_badge: 'Período de certificación activo',
     cert_kpi_lines: 'Líneas',
     cert_kpi_exercises: 'Ejercicios asignados',
     cert_kpi_jefes: 'Jefes de Capacitación',
@@ -273,16 +273,16 @@ const t = {
     cert_col_pass: 'Aprob.',
     cert_sessions: 'sesiones',
     cert_open_exercise: 'Abrir ejercicio',
-    cert_legend: 'Avance = ejercicios completados / (asesores × 3 simuladores asignados) dentro del período de certificación.',
+    cert_legend: 'Avance = ejercicios completados por asesores dentro del período de certificación.',
     cert_kpi_certified: 'Certificados',
     cert_certified_title: 'Asesores Certificados',
-    cert_certified_def: 'Certificado = más de 80% en cada uno de sus 3 simuladores asignados durante el período.',
+    cert_certified_def: 'Certificado = ≥80% en cada ejercicio asignado de su producto durante el período.',
     cert_certified_none: 'Aún no hay asesores certificados en el período.',
   },
   en: {
     // Branding
     platform_tagline: 'Sales Training Platform',
-    sidebar_tagline: 'Sanfer Sales Simulator',
+    sidebar_tagline: 'M8 Pharma Sales Simulator',
 
     nav_overview: 'Overview',
     nav_simulations: 'Simulations',
@@ -311,7 +311,7 @@ const t = {
     sub_with_simulations: 'with simulations',
     sub_registered: 'registered',
     sub_active: 'active',
-    sub_cert_slots: '15 lines × 3 simulators',
+    sub_cert_slots: '2 products × 2 exercises + 1 combined',
 
     score_trend: 'Score Trend',
     pass_fail_dist: 'Pass / Fail Distribution',

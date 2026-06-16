@@ -1,5 +1,4 @@
 import type { Activity, Administrator, LineTag, Member, Simulation } from '../api/types'
-import { CERT_LINES } from './certification'
 
 // re-export so pages can import directly
 export type { Simulation }
@@ -18,11 +17,8 @@ const MAX_TREND_POINTS = 60
 // domains server-side — this is a client-side backstop.
 // ─────────────────────────────────────────────
 const TEST_USER_BLOCKLIST = new Set([
-  'Tester Sanfer Demo',
-  'Tester Sanfer Grupal',
-  'Tester Sanfer Completo',
+  'Demo User',
   'Piloto 1', 'Piloto 2', 'Piloto 8',
-  'Sanfer01', 'Demo User',
 ])
 
 function isTestUser(s: Simulation): boolean {
@@ -437,7 +433,7 @@ export function extractFeedback(sims: Simulation[]): FeedbackEntry[] {
 }
 
 // ─────────────────────────────────────────────
-// Line (Dim_Line / tag1) statistics — Sanfer-specific
+// Line (Dim_Line / tag1) statistics
 // ─────────────────────────────────────────────
 
 export interface LineStat {
@@ -450,16 +446,6 @@ export interface LineStat {
   passCount: number
   activeUsers: number
 }
-
-// Certification exercises belong to exactly one línea (only #420 is shared by
-// two), so the exercise itself identifies the line when the member lookup fails.
-const EXERCISE_TO_LINES = (() => {
-  const map = new Map<number, number[]>()
-  for (const line of CERT_LINES)
-    for (const sim of line.sims)
-      map.set(sim.saexId, [...(map.get(sim.saexId) ?? []), line.tagId])
-  return map
-})()
 
 export function computeLineStats(
   lines: LineTag[],
@@ -481,14 +467,7 @@ export function computeLineStats(
   const simsByLine = new Map<number, Simulation[]>()
   sims.forEach((s) => {
     if (!s.Usuario) return
-    // 1st: the advisor's member record names their line.
-    // 2nd: some advisors exist only in the simulator (no member record) —
-    //      attribute by the exercise's owning line, unless it's ambiguous (#420).
-    let lineId = userToLine.get(s.Usuario.toLowerCase())
-    if (!lineId) {
-      const owners = EXERCISE_TO_LINES.get(s.ID_Caso_de_Uso)
-      if (owners?.length === 1) lineId = owners[0]
-    }
+    const lineId = userToLine.get(s.Usuario.toLowerCase())
     if (!lineId) return
     if (!simsByLine.has(lineId)) simsByLine.set(lineId, [])
     simsByLine.get(lineId)!.push(s)
@@ -533,8 +512,8 @@ export function buildAIContext(
   const best5    = [...objections].reverse().slice(0, 5).map((o, i) => `  ${i + 1}. "${o.objection_text}" — asked ${o.count}x, ${o.pass_rate}% success`).join('\n')
 
   return `
-SANFER SALES TRAINING INTELLIGENCE PLATFORM — LIVE DASHBOARD DATA
-------------------------------------------------------------------
+M8 PHARMA SALES TRAINING INTELLIGENCE PLATFORM — LIVE DASHBOARD DATA
+---------------------------------------------------------------------
 Total Simulations: ${kpis.totalSimulations}
 Average Score: ${kpis.averageScore}%
 Pass Rate: ${kpis.passRate}% (${kpis.passCount} passed, ${kpis.failCount} failed)

@@ -9,6 +9,6 @@ gentera_source/
 
 
 # Server secrets — never commit
-sanfer_bridge_index.php
+*_bridge_index.php
 shared_root_key
 *.xlsx
