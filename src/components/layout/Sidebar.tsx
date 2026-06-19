@@ -139,13 +139,13 @@ export const Sidebar = memo(function Sidebar() {
         {/* Logo */}
         <div className="flex items-center h-16 px-4 border-b border-line/30 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/sanfer-logo.svg" height={32} alt="Sanfer" className="w-auto shrink-0" style={{ maxHeight: 32 }} />
+            <img src="/m8-logo.svg" height={32} alt="M8 Pharma" className="w-auto shrink-0" style={{ maxHeight: 32 }} />
             <div className={cn(
               'flex flex-col min-w-0 overflow-hidden transition-[opacity,width] duration-150',
               sidebarCollapsed ? 'opacity-0 w-0' : 'opacity-100',
             )}>
               <span className="text-slate-100 font-semibold text-sm leading-tight tracking-tight whitespace-nowrap">
-                Sanfer
+                M8 Pharma
               </span>
               <span className="text-slate-600 text-[10px] leading-tight whitespace-nowrap">
                 {t('sidebar_tagline')}
@@ -185,9 +185,9 @@ export const Sidebar = memo(function Sidebar() {
             {/* Logo + close */}
             <div className="flex items-center justify-between h-16 px-4 border-b border-line/30 shrink-0">
               <div className="flex items-center gap-3">
-                <img src="/sanfer-logo.svg" height={28} alt="Sanfer" className="w-auto shrink-0" style={{ maxHeight: 28 }} />
+                <img src="/m8-logo.svg" height={28} alt="M8 Pharma" className="w-auto shrink-0" style={{ maxHeight: 28 }} />
                 <div className="flex flex-col">
-                  <span className="text-slate-100 font-semibold text-sm leading-tight">Sanfer</span>
+                  <span className="text-slate-100 font-semibold text-sm leading-tight">M8 Pharma</span>
                   <span className="text-slate-600 text-[10px] leading-tight">{t('sidebar_tagline')}</span>
                 </div>
               </div>

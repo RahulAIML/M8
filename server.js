@@ -1,34 +1,32 @@
-// Serves dist/ as a static SPA and proxies /sanfer/* to the upstream API
-// with an in-memory cache so repeated requests within CACHE_TTL are instant.
-// All responses are gzipped when the client supports it — Node's fetch
-// transparently decompresses the upstream, so we must re-compress here.
+// Serves dist/ as a static SPA and proxies /m8/bridge/* to rolplay.app/ajax/*
+// with an in-memory cache keyed on the SQL body so repeated queries are instant.
+// All responses are gzipped when the client supports it.
 import { createServer } from 'http'
 import { readFile } from 'fs/promises'
 import { join, extname } from 'path'
 import { fileURLToPath } from 'url'
 import { gzipSync } from 'zlib'
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const DIST      = join(__dirname, 'dist')
-const PORT      = parseInt(process.env.PORT ?? '4174')
-const UPSTREAM  = 'https://serv.aux-rolplay.com'
-const CACHE_TTL = 5 * 60 * 1000  // 5 minutes — matches React Query staleTime
+const __dirname  = fileURLToPath(new URL('.', import.meta.url))
+const DIST       = join(__dirname, 'dist')
+const PORT       = parseInt(process.env.PORT ?? '4175')
+const UPSTREAM   = 'https://rolplay.app/ajax'
+const CACHE_TTL  = 5 * 60 * 1000  // 5 min — matches React Query staleTime
 
-const apiCache    = new Map()  // key → { body: string, gz: Buffer, ts: number }
+const apiCache    = new Map()  // sql → { body: string, gz: Buffer, ts: number }
 const staticCache = new Map()  // filePath → { data: Buffer, gz: Buffer | null }
 
 const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js':   'application/javascript',
-  '.css':  'text/css',
-  '.json': 'application/json',
-  '.svg':  'image/svg+xml',
-  '.png':  'image/png',
-  '.ico':  'image/x-icon',
+  '.html':  'text/html; charset=utf-8',
+  '.js':    'application/javascript',
+  '.css':   'text/css',
+  '.json':  'application/json',
+  '.svg':   'image/svg+xml',
+  '.png':   'image/png',
+  '.ico':   'image/x-icon',
   '.woff2': 'font/woff2',
   '.woff':  'font/woff',
 }
-// Already-compressed formats — gzip would only waste CPU
 const SKIP_GZIP = new Set(['.png', '.ico', '.woff', '.woff2'])
 
 function acceptsGzip(req) {
@@ -45,14 +43,36 @@ function send(req, res, payload, gz) {
   }
 }
 
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    req.on('data', (c) => chunks.push(c))
+    req.on('end',  () => resolve(Buffer.concat(chunks).toString()))
+    req.on('error', reject)
+  })
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost`)
 
-  // ── API proxy with cache ───────────────────────────────────────────────────
-  if (url.pathname.startsWith('/sanfer/')) {
-    const key    = url.pathname + url.search
-    const cached = apiCache.get(key)
+  // ── M8 bridge proxy ──────────────────────────────────────────────────────────
+  // /m8/bridge/remote-access.php  →  https://rolplay.app/ajax/remote-access.php
+  if (url.pathname.startsWith('/m8/bridge/')) {
+    const upstreamPath = url.pathname.replace(/^\/m8\/bridge/, '')
+    const upstreamUrl  = `${UPSTREAM}${upstreamPath}`
 
+    // Only POST is used (remote-access.php requires it)
+    if (req.method !== 'POST') {
+      res.writeHead(405)
+      res.end('Method Not Allowed')
+      return
+    }
+
+    let bodyText
+    try { bodyText = await readBody(req) } catch { bodyText = '{}' }
+
+    // Cache keyed on SQL content so identical queries are instant
+    const cached = apiCache.get(bodyText)
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
       res.setHeader('Content-Type', 'application/json')
       res.setHeader('X-Cache', 'HIT')
@@ -61,8 +81,10 @@ createServer(async (req, res) => {
     }
 
     try {
-      const upstream = await fetch(`${UPSTREAM}${req.url}`, {
-        headers: { 'Accept': 'application/json' },
+      const upstream = await fetch(upstreamUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body:    bodyText,
       })
       if (!upstream.ok) {
         res.writeHead(upstream.status)
@@ -71,7 +93,7 @@ createServer(async (req, res) => {
       }
       const body = await upstream.text()
       const gz   = gzipSync(body)
-      apiCache.set(key, { body, gz, ts: Date.now() })
+      apiCache.set(bodyText, { body, gz, ts: Date.now() })
       res.setHeader('Content-Type', 'application/json')
       res.setHeader('X-Cache', 'MISS')
       send(req, res, body, gz)
@@ -82,11 +104,10 @@ createServer(async (req, res) => {
     return
   }
 
-  // ── Static file serving (memory-cached + pre-gzipped; dist is immutable) ───
+  // ── Static file serving ──────────────────────────────────────────────────────
   let filePath = join(DIST, url.pathname)
   const ext    = extname(filePath)
 
-  // For extensionless paths (SPA routes), serve index.html
   if (!ext) filePath = join(DIST, 'index.html')
 
   try {
@@ -99,13 +120,11 @@ createServer(async (req, res) => {
     }
     const mime = MIME[extname(filePath)] ?? 'application/octet-stream'
     res.setHeader('Content-Type', mime)
-    // Hashed asset files are immutable — cache them for 1 year in the browser
     if ((ext === '.js' || ext === '.css') && url.pathname.startsWith('/assets/')) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
     }
     send(req, res, entry.data, entry.gz)
   } catch {
-    // Fallback: any unknown route → SPA index.html
     try {
       const html = await readFile(join(DIST, 'index.html'))
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
@@ -116,5 +135,5 @@ createServer(async (req, res) => {
     }
   }
 }).listen(PORT, '0.0.0.0', () => {
-  console.log(`Sanfer dashboard running on port ${PORT}`)
+  console.log(`M8 dashboard running on port ${PORT}`)
 })

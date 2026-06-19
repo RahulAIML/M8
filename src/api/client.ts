@@ -7,29 +7,21 @@ import type {
   Simulation,
   SimReport,
 } from './types'
-import { inDateWindow, resolveEffectiveDates } from '../lib/dateUtils'
+import { resolveEffectiveDates } from '../lib/dateUtils'
 
-const BASE        = '/m8/api'
-const BRIDGE_BASE = '/m8/bridge'
-// TODO: confirm the M8 platform client tag from the Rolplay org settings
-const CLIENT      = 'rolplay_m8'
+// Proxied in dev: /m8/bridge → https://rolplay.app/ajax  (vite.config.ts)
+const REMOTE = '/m8/bridge/remote-access.php'
 
 // M8 Pharma exercise IDs — Legalon + Abcito (Simulador + Coach) + Combined Coach
 const M8_IDS = [3129, 3131, 3132, 3155, 3161]
+const M8_CLIENT_ID = 24
+const IDS_SQL = M8_IDS.join(',')
 
-const IDS_CSV = M8_IDS.join(',')
-
-/** Extract YYYY-MM-DD from a date string regardless of T or space separator. */
+/** Extract YYYY-MM-DD from a datetime string regardless of separator. */
 export function simDate(fecha: string | null | undefined): string {
   return fecha?.substring(0, 10) ?? ''
 }
 
-// ─────────────────────────────────────────────
-// Platform data hygiene
-// ─────────────────────────────────────────────
-
-// The platform API returns names with HTML entities ("G&oacute;mez" → "Gómez").
-// A detached <textarea> decodes every named/numeric entity without executing markup.
 const entityBox = typeof document !== 'undefined' ? document.createElement('textarea') : null
 function decodeEntities(s: string | null | undefined): string {
   if (!s) return ''
@@ -38,36 +30,39 @@ function decodeEntities(s: string | null | undefined): string {
   return entityBox.value
 }
 
-// Internal platform accounts (rolplay-domain addresses) are admin tooling, not M8 participants.
 function isInternalEmail(email: string | null | undefined): boolean {
   return /rolplay/i.test(email ?? '')
 }
 
 // ─────────────────────────────────────────────
-// Core fetch utility
+// Core SQL helper
 // ─────────────────────────────────────────────
 
-async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(url, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status} — ${url}`)
-  return res.json() as Promise<T>
+async function remoteSQL<T>(sql: string, signal?: AbortSignal): Promise<T[]> {
+  const res = await fetch(REMOTE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql }),
+    signal,
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status} — remote-access.php`)
+  const json = await res.json()
+  if (json.result !== 'success') throw new Error(json.error ?? 'SQL query failed')
+  return (json.data ?? []) as T[]
 }
 
 // ─────────────────────────────────────────────
 // Endpoints
 // ─────────────────────────────────────────────
 
-// Activity names come from the bridge (demorp6 usecases table) — the single
-// source of truth for the 44 certification exercises.
 export async function fetchActivities(signal?: AbortSignal): Promise<ActivitiesResponse> {
-  const resp = await fetchJSON<ActivitiesResponse>(`${BRIDGE_BASE}/?action=activities.demorp6&ids=${IDS_CSV}`, signal)
-  return {
-    ...resp,
-    data: (resp.data ?? []).map((a) => ({
-      ...a,
-      Caso_de_Uso: a.Caso_de_Uso.replace(/^M8\s*-\s*/i, ''),
-    })),
-  }
+  const data = await remoteSQL<{ ID_Caso_de_Uso: number; Caso_de_Uso: string; Actividad_Nombre: string }>(
+    `SELECT ID AS ID_Caso_de_Uso, name AS Caso_de_Uso, name AS Actividad_Nombre
+     FROM r_simulator
+     WHERE ID IN (${IDS_SQL})`,
+    signal,
+  )
+  return { ok: true, data, total_records: data.length }
 }
 
 export async function fetchSimulations(
@@ -76,63 +71,158 @@ export async function fetchSimulations(
   signal?: AbortSignal,
 ): Promise<Simulation[]> {
   const { from: effFrom, to: effTo } = resolveEffectiveDates(from ?? null, to ?? null)
-  const qs = `action=sim.demorp6&ids=${IDS_CSV}&date_from=${effFrom}&date_to=${effTo}`
-  const resp = await fetchJSON<{ ok: boolean; data: Simulation[] }>(`${BRIDGE_BASE}/?${qs}`, signal)
-  return (resp.data ?? []).filter((s) => {
-    const date = simDate(s.Fecha_y_Hora)
-    return date ? inDateWindow(date, effFrom, effTo) : false
-  })
+  const rows = await remoteSQL<Simulation>(
+    `SELECT
+       us.ID                              AS ID_Sim,
+       us.simulator_id                    AS ID_Caso_de_Uso,
+       rs.name                            AS Caso_de_Uso,
+       u.email                            AS Usuario,
+       u.name                             AS Usuario_Nombre,
+       us.score                           AS Calificacion,
+       IF(us.passed_flag = 1, 'si', 'no') AS Diagnostico_Final,
+       us.date_created                    AS Fecha_y_Hora,
+       us.score                           AS Puntos_Totales,
+       NULL AS Pregunta_1, NULL AS Pregunta_2, NULL AS Pregunta_3,
+       NULL AS Pregunta_4, NULL AS Pregunta_5, NULL AS Pregunta_6,
+       NULL AS Puntos_1,   NULL AS Puntos_2,   NULL AS Puntos_3,
+       NULL AS Puntos_4,   NULL AS Puntos_5,   NULL AS Puntos_6,
+       NULL AS Respuesta_1,      NULL AS Respuesta_2,      NULL AS Respuesta_3,
+       NULL AS Respuesta_4,      NULL AS Respuesta_5,      NULL AS Respuesta_6,
+       NULL AS Retroalimentacion_1, NULL AS Retroalimentacion_2,
+       NULL AS Retroalimentacion_3, NULL AS Retroalimentacion_4,
+       NULL AS Retroalimentacion_5, NULL AS Retroalimentacion_6
+     FROM r_user_session us
+     JOIN r_user u      ON u.ID  = us.user_id
+     JOIN r_simulator rs ON rs.ID = us.simulator_id
+     WHERE us.simulator_id IN (${IDS_SQL})
+       AND u.client_id = ${M8_CLIENT_ID}
+       AND us.date_created >= '${effFrom}'
+       AND us.date_created < DATE_ADD('${effTo}', INTERVAL 1 DAY)
+     ORDER BY us.date_created DESC`,
+    signal,
+  )
+  return rows
 }
 
-/** Full closing report for one session — fetched on demand from the drilldown */
 export async function fetchSimReport(simId: number, signal?: AbortSignal): Promise<SimReport> {
-  const resp = await fetchJSON<{ ok: boolean; data: SimReport }>(
-    `${BRIDGE_BASE}/?action=sim.report&sim_id=${simId}`, signal,
+  const id = Math.trunc(simId) // ensure integer
+  const [session] = await remoteSQL<{
+    ID_Sim: number; ID_Caso_de_Uso: number; Usuario: string | null; Usuario_Nombre: string | null
+    Fecha_y_Hora: string | null; Calificacion: number; Producto: string
+  }>(
+    `SELECT
+       us.ID               AS ID_Sim,
+       us.simulator_id     AS ID_Caso_de_Uso,
+       u.email             AS Usuario,
+       u.name              AS Usuario_Nombre,
+       us.date_created     AS Fecha_y_Hora,
+       us.score            AS Calificacion,
+       rs.name             AS Producto
+     FROM r_user_session us
+     JOIN r_user      u  ON u.ID  = us.user_id
+     JOIN r_simulator rs ON rs.ID = us.simulator_id
+     WHERE us.ID = ${id}`,
+    signal,
   )
-  const d = resp.data
+  if (!session) throw new Error(`Session ${id} not found`)
+
+  const details = await remoteSQL<{
+    sequence: number; ai_text: string | null; user_text: string | null; retro_analysis: string | null
+  }>(
+    `SELECT sequence, ai_text, user_text, retro_analysis
+     FROM r_user_session_details
+     WHERE session_id = ${id}
+     ORDER BY sequence`,
+    signal,
+  )
+
+  const rondas = details.map((d) => ({
+    n:               d.sequence,
+    pregunta:        d.ai_text ?? null,
+    respuesta_rep:   d.user_text ?? null,
+    criterio:        '',
+    respuesta_modelo:'',
+    analisis:        d.retro_analysis ?? '',
+    puntos:          null,
+    max_puntos:      1,
+  }))
+
+  const producto = session.Producto.replace(/^M8\s*-\s*/i, '')
   return {
-    ...d,
-    Producto: d.Producto?.replace(/^M8\s*-\s*/i, '') ?? d.Producto,
-    Titulo:   d.Titulo?.replace(/^M8\s*-\s*/i, '')   ?? d.Titulo,
+    ID_Sim:        session.ID_Sim,
+    ID_Caso_de_Uso:session.ID_Caso_de_Uso,
+    Usuario:       session.Usuario,
+    Usuario_Nombre:session.Usuario_Nombre,
+    Fecha_y_Hora:  session.Fecha_y_Hora,
+    Calificacion:  session.Calificacion,
+    Producto:      producto,
+    Titulo:        session.Producto,
+    Rondas:        rondas,
+    Secciones:     [],
   }
 }
 
-// Members come via the bridge org proxy — trimmed to the fields the dashboard
-// reads (~35 KB wire vs ~800 KB raw upstream) and disk-cached server-side.
-// They are filtered to real participants (internal rolplay accounts dropped)
-// and names entity-decoded HERE so every page and KPI sees identical data.
+// Level 2 = Representantes (field reps) → members
 export async function fetchMembers(signal?: AbortSignal): Promise<MembersResponse> {
-  const resp = await fetchJSON<MembersResponse>(`${BRIDGE_BASE}/?action=org.members`, signal)
-  const data = (resp.data ?? [])
-    .filter((m) => !isInternalEmail(m.mb_email) && !isInternalEmail(m.mb_user))
-    .map((m) => ({
-      ...m,
-      mb_fullname:    decodeEntities(m.mb_fullname),
-      mb_designation: decodeEntities(m.mb_designation),
-    }))
-  return { ...resp, data, count: data.length }
+  const data = await remoteSQL<{
+    mb_id: number; mb_fullname: string; mb_email: string; mb_user: string
+    mb_admin: number; mb_status: number; mb_designation: string; mb_idTag1: number
+  }>(
+    `SELECT
+       ID                              AS mb_id,
+       name                            AS mb_fullname,
+       email                           AS mb_email,
+       email                           AS mb_user,
+       0                               AS mb_admin,
+       IF(disabled = 0, 1, 0)          AS mb_status,
+       COALESCE(designation, '')       AS mb_designation,
+       COALESCE(parent_id, 0)          AS mb_idTag1
+     FROM r_user
+     WHERE client_id = ${M8_CLIENT_ID}
+       AND level = 2`,
+    signal,
+  )
+  const filtered = data
+    .filter((m) => !isInternalEmail(m.mb_email))
+    .map((m) => ({ ...m, mb_fullname: decodeEntities(m.mb_fullname) }))
+  return { ok: true, data: filtered, count: filtered.length }
 }
 
-// 'dev' profiles are platform tooling accounts ("Administrador Dev"), not part
-// of the Sanfer organization — excluded from counts, the org tree, and tables.
+// Level 0–1 = Directors + District Managers → admins
 export async function fetchAdmins(signal?: AbortSignal): Promise<AdminsResponse> {
-  const resp = await fetchJSON<AdminsResponse>(`${BRIDGE_BASE}/?action=org.admins`, signal)
-  const data = (resp.data ?? [])
-    .filter((a) => a.rpa_profile_type !== 'dev' && !isInternalEmail(a.rpa_email))
-    .map((a) => ({ ...a, rpa_full_name: decodeEntities(a.rpa_full_name) }))
-  return { ...resp, data, count: data.length }
+  const data = await remoteSQL<{
+    rpa_id: number; rpa_full_name: string; rpa_email: string; rpa_parent: number
+  }>(
+    `SELECT
+       ID                        AS rpa_id,
+       name                      AS rpa_full_name,
+       email                     AS rpa_email,
+       COALESCE(parent_id, 0)    AS rpa_parent
+     FROM r_user
+     WHERE client_id = ${M8_CLIENT_ID}
+       AND level IN (0, 1)`,
+    signal,
+  )
+  const filtered = data
+    .filter((a) => !isInternalEmail(a.rpa_email))
+    .map((a) => ({
+      ...a,
+      rpa_profile_type: 'admin' as const,
+      rpa_full_name: decodeEntities(a.rpa_full_name),
+    }))
+  return { ok: true, data: filtered, count: filtered.length }
 }
 
-export async function fetchLines(signal?: AbortSignal): Promise<LinesResponse> {
-  return fetchJSON<LinesResponse>(`${BASE}/data/${CLIENT}/tag1`, signal)
+// M8 has no line/tag structure
+export async function fetchLines(_signal?: AbortSignal): Promise<LinesResponse> {
+  return { client: 'm8', count: 0, data: [] }
 }
 
+// Objection tracking not yet available for M8
 export async function fetchObjections(
-  from?: string | null,
-  to?: string | null,
-  signal?: AbortSignal,
+  _from?: string | null,
+  _to?: string | null,
+  _signal?: AbortSignal,
 ): Promise<ObjectionsResponse> {
-  const { from: effFrom, to: effTo } = resolveEffectiveDates(from ?? null, to ?? null)
-  const qs = `action=objections.demorp6&ids=${IDS_CSV}&date_from=${effFrom}&date_to=${effTo}`
-  return fetchJSON<ObjectionsResponse>(`${BRIDGE_BASE}/?${qs}`, signal)
+  return { ok: true, data: [], total_records: 0 }
 }

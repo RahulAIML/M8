@@ -6,11 +6,11 @@ export default defineConfig({
   server: {
     port: 5175,
     proxy: {
-      '/m8': {
-        target: 'https://serv.aux-rolplay.com',
+      '/m8/bridge': {
+        target: 'https://rolplay.app',
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path,
+        rewrite: (path) => path.replace(/^\/m8\/bridge/, '/ajax'),
       },
     },
   },
@@ -19,11 +19,11 @@ export default defineConfig({
     port: parseInt(process.env.PORT ?? '4175'),
     allowedHosts: ['dashboard-m8.onrender.com', 'm8-dashboard.onrender.com'],
     proxy: {
-      '/m8': {
-        target: 'https://serv.aux-rolplay.com',
+      '/m8/bridge': {
+        target: 'https://rolplay.app',
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path,
+        rewrite: (path) => path.replace(/^\/m8\/bridge/, '/ajax'),
       },
     },
   },

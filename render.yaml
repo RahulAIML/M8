@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sanfer-dashboard
+    name: m8-dashboard
     env: node
     buildCommand: npm ci && npm run build
     startCommand: node server.js
