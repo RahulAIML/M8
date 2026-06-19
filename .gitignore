@@ -7,6 +7,8 @@ gentera_source/
 *.webp
 *.txt
 
+# IDE / tooling
+.claude/
 
 # Server secrets — never commit
 *_bridge_index.php

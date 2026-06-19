@@ -59,7 +59,7 @@ export default function ReportsPage() {
         [language === 'es' ? 'Aprobados' : 'Passed', String(kpis?.passCount ?? 0)],
         [language === 'es' ? 'Reprobados' : 'Failed', String(kpis?.failCount ?? 0)],
       ],
-      `sanfer_simulator_summary_${new Date().toISOString().split('T')[0]}.csv`,
+      `m8_simulator_summary_${new Date().toISOString().split('T')[0]}.csv`,
     )
   }
 
@@ -75,7 +75,7 @@ export default function ReportsPage() {
       String(s.Calificacion), String(s.Puntos_Totales),
       s.Diagnostico_Final ?? '',
     ]))
-    downloadCSV(rows, `sanfer_simulations_${new Date().toISOString().split('T')[0]}.csv`)
+    downloadCSV(rows, `m8_simulations_${new Date().toISOString().split('T')[0]}.csv`)
   }
 
   const es = language === 'es'

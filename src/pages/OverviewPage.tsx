@@ -174,7 +174,7 @@ export default function OverviewPage() {
       [es ? 'Aprobados'          : 'Passed',            activeKpis.passCount],
       [es ? 'Reprobados'         : 'Failed',            activeKpis.failCount],
       ...(activeActStats ?? []).map((a) => [a.name, a.count]),
-    ], `sanfer_sim_overview_${csvDate()}.csv`)
+    ], `m8_sim_overview_${csvDate()}.csv`)
   }
 
   // ── Loading / error ──────────────────────────

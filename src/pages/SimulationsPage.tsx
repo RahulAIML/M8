@@ -213,7 +213,7 @@ export default function SimulationsPage() {
                               {t('report_btn')}
                             </button>
                             <a
-                              href={`https://improveyourpitchbeta.net/demorp6/reportes/visor-usecase.php?&saex=${s.ID_Sim}`}
+                              href={`https://rolplay.app/reportes/visor-usecase.php?&saex=${s.ID_Sim}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}

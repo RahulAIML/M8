@@ -10,11 +10,8 @@ const MAX_TREND_POINTS = 60
 
 // ─────────────────────────────────────────────
 // Test / demo user filtering
-// Validated against live demorp6 data (2026-06): test accounts use
-// rolplay.com / rolplay-sanfer.com / rolplaysanfer.com email domains and
-// "Tester*" / "RolPlay Pruebas*" names. Real users are @sanfer.com.mx,
-// @sanfer.com and @hormona.com.mx. The bridge also excludes rolplay
-// domains server-side — this is a client-side backstop.
+// Test accounts use rolplay.com email domains and "Tester*" / "RolPlay Pruebas*" names.
+// This is a client-side backstop; the API also filters them server-side.
 // ─────────────────────────────────────────────
 const TEST_USER_BLOCKLIST = new Set([
   'Demo User',

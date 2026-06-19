@@ -151,7 +151,7 @@ export interface LinesResponse {
 }
 
 // ─────────────────────────────────────────────
-// Objection handling stats (bridge action=objections.demorp6)
+// Objection handling stats
 // ─────────────────────────────────────────────
 export interface ObjectionStat {
   usecase_id: number
