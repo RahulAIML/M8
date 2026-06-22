@@ -21,7 +21,7 @@ import { Link } from 'react-router-dom'
 import { useChartColors } from '../lib/chartTheme'
 import { TooltipShell, TRow, TTitle, useTooltipColors, type TooltipColors } from '../components/charts/TooltipShell'
 
-const COLORS = { pass: '#10B981', fail: '#EF4444', accent: '#3B82F6', violet: '#8B5CF6' }
+const COLORS = { pass: '#E52B2B', fail: '#fecdd3', accent: '#E52B2B', violet: '#8B5CF6' }
 
 function TrendTooltip({ active, payload, label, es, c }: { active?: boolean; payload?: any[]; label?: string; es: boolean; c: TooltipColors }) {
   if (!active || !payload?.length) return null
@@ -217,87 +217,130 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header + date range + exports */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-50 tracking-tight">{t('page_overview_title')}</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{t('page_overview_subtitle')}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DateRangeFilter
-            from={from} to={to}
-            onApply={(f, t) => setDateRange(f || null, t || null)}
-            label={es ? 'Período' : 'Period'}
-          />
-          {/* User filter dropdown */}
-          <div className="relative" ref={userDropdownRef}>
-            <button
-              onClick={() => setShowUserDropdown((v) => !v)}
-              className={`flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-all ${
-                selectedUsers.size > 0
-                  ? 'text-accent border-accent/40 bg-accent/5'
-                  : 'text-slate-400 hover:text-slate-200 border-line/50 hover:border-line'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              {selectedUsers.size > 0
-                ? `${selectedUsers.size} ${es ? 'asesor(es)' : 'advisor(s)'}`
-                : (es ? 'Asesores' : 'Advisors')}
-              <ChevronDown className="w-3 h-3 opacity-60" />
-            </button>
-            {showUserDropdown && (
-              <div className="absolute top-full mt-1 right-0 z-30 w-56 sm:w-64 bg-surface border border-line rounded-xl shadow-elevated overflow-hidden">
-                <div className="p-2 border-b border-line/30">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
-                    <input
-                      value={userSearch}
-                      onChange={(e) => setUserSearch(e.target.value)}
-                      placeholder={es ? 'Buscar...' : 'Search...'}
-                      className="w-full bg-card border border-line/50 text-slate-300 text-xs rounded-lg pl-7 pr-3 py-1.5 focus:outline-none focus:border-accent"
-                    />
-                  </div>
-                </div>
-                {selectedUsers.size > 0 && (
-                  <div className="px-3 py-1.5 border-b border-line/30">
-                    <button
-                      onClick={() => setSelectedUsers(new Set())}
-                      className="text-[11px] text-danger hover:text-red-400 flex items-center gap-1"
-                    >
-                      <X className="w-2.5 h-2.5" /> {es ? 'Limpiar selección' : 'Clear selection'}
-                    </button>
-                  </div>
-                )}
-                <div className="max-h-52 overflow-y-auto">
-                  {filteredUserNames.map((name) => (
-                    <button
-                      key={name}
-                      onClick={() => toggleUser(name)}
-                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-white/[0.03] transition-colors ${
-                        selectedUsers.has(name) ? 'text-accent' : 'text-slate-400'
-                      }`}
-                    >
-                      <span className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${
-                        selectedUsers.has(name) ? 'bg-accent border-accent' : 'border-line'
-                      }`}>
-                        {selectedUsers.has(name) && <span className="text-white text-[8px] font-bold">✓</span>}
-                      </span>
-                      {name}
-                    </button>
-                  ))}
+      {/* Header */}
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+          {es ? 'Bienvenido a tu panel' : 'Welcome your dashboard'}
+        </h1>
+        <p className="text-slate-500 text-sm mt-0.5">
+          {es
+            ? `Tu equipo ha completado ${activeKpis?.totalSimulations ?? '…'} simulaciones este mes.`
+            : `Your team has completed ${activeKpis?.totalSimulations ?? '…'} simulations this month.`}
+        </p>
+      </div>
+
+      {/* Filter row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Period pills */}
+        {(['all', '3m', '12m'] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => {
+              if (p === 'all') {
+                setDateRange(null, null)
+              } else {
+                const now = new Date()
+                const from = new Date(now)
+                from.setMonth(from.getMonth() - (p === '3m' ? 3 : 12))
+                setDateRange(from.toISOString().slice(0, 10), now.toISOString().slice(0, 10))
+              }
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              (p === 'all' && !dateFrom && !dateTo) ||
+              (p === '3m' && dateFrom && dateTo && new Date(dateTo).getTime() - new Date(dateFrom).getTime() < 100 * 24 * 60 * 60 * 1000) ||
+              (p === '12m' && dateFrom && dateTo && new Date(dateTo).getTime() - new Date(dateFrom).getTime() >= 100 * 24 * 60 * 60 * 1000)
+                ? 'bg-accent text-white'
+                : 'bg-gray-100 text-slate-600 hover:bg-gray-200'
+            }`}
+          >
+            {p === 'all' ? (es ? 'Todo' : 'All') : p.toUpperCase()}
+          </button>
+        ))}
+
+        {/* Date inputs */}
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => setDateRange(e.target.value || null, dateTo)}
+          className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-slate-600 bg-white focus:outline-none focus:border-accent"
+        />
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => setDateRange(dateFrom, e.target.value || null)}
+          className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-slate-600 bg-white focus:outline-none focus:border-accent"
+        />
+
+        {/* User filter dropdown */}
+        <div className="relative" ref={userDropdownRef}>
+          <button
+            onClick={() => setShowUserDropdown((v) => !v)}
+            className={`flex items-center gap-1.5 text-xs border rounded-lg px-3 py-1.5 transition-all ${
+              selectedUsers.size > 0
+                ? 'text-accent border-accent/40 bg-accent/5'
+                : 'text-slate-500 hover:text-slate-700 border-gray-200 hover:border-gray-300 bg-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            {selectedUsers.size > 0
+              ? `${selectedUsers.size} ${es ? 'asesor(es)' : 'advisor(s)'}`
+              : (es ? 'Asesores' : 'Advisors')}
+            <ChevronDown className="w-3 h-3 opacity-60" />
+          </button>
+          {showUserDropdown && (
+            <div className="absolute top-full mt-1 right-0 z-30 w-56 sm:w-64 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+              <div className="p-2 border-b border-gray-100">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  <input
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder={es ? 'Buscar...' : 'Search...'}
+                    className="w-full bg-gray-50 border border-gray-200 text-slate-700 text-xs rounded-lg pl-7 pr-3 py-1.5 focus:outline-none focus:border-accent"
+                  />
                 </div>
               </div>
-            )}
-          </div>
-          <button
-            onClick={exportSimCSV}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 border border-line/50 hover:border-line rounded-lg px-2 sm:px-3 py-1.5 transition-all"
-            title="Simulator CSV"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{es ? 'Sim. CSV' : 'Sim. CSV'}</span>
-          </button>
+              {selectedUsers.size > 0 && (
+                <div className="px-3 py-1.5 border-b border-gray-100">
+                  <button
+                    onClick={() => setSelectedUsers(new Set())}
+                    className="text-[11px] text-danger hover:text-red-600 flex items-center gap-1"
+                  >
+                    <X className="w-2.5 h-2.5" /> {es ? 'Limpiar selección' : 'Clear selection'}
+                  </button>
+                </div>
+              )}
+              <div className="max-h-52 overflow-y-auto">
+                {filteredUserNames.map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => toggleUser(name)}
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 transition-colors ${
+                      selectedUsers.has(name) ? 'text-accent' : 'text-slate-600'
+                    }`}
+                  >
+                    <span className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${
+                      selectedUsers.has(name) ? 'bg-accent border-accent' : 'border-gray-300'
+                    }`}>
+                      {selectedUsers.has(name) && <span className="text-white text-[8px] font-bold">✓</span>}
+                    </span>
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Export All button */}
+        <button
+          onClick={exportSimCSV}
+          className="flex items-center gap-1.5 text-xs text-white bg-accent hover:opacity-90 rounded-lg px-3 py-1.5 transition-all font-medium ml-auto"
+          title="Export CSV"
+        >
+          <Download className="w-3.5 h-3.5" />
+          {es ? 'Exportar todo' : 'Export All'}
+        </button>
       </div>
 
       {/* KPIs */}
@@ -314,7 +357,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="card p-5 sm:col-span-2 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-200">{t('score_trend')}</h3>
+            <h3 className="text-sm font-semibold text-slate-700">{t('score_trend')}</h3>
             {anyFilterActive && (
               <span className="text-[10px] text-accent bg-accent/10 px-2 py-0.5 rounded-full">
                 {filteredSims.length} {es ? 'sims filtradas' : 'filtered sims'}
@@ -341,8 +384,8 @@ export default function OverviewPage() {
         </div>
 
         <div className="card p-5">
-          <h3 className="text-sm font-semibold text-slate-200 mb-4">{t('pass_fail_dist')}</h3>
-          <div className="h-56">
+          <h3 className="text-sm font-semibold text-slate-700 mb-4">{t('pass_fail_dist')}</h3>
+          <div className="h-56 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={passFailData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value">
@@ -351,10 +394,17 @@ export default function OverviewPage() {
                 <Tooltip content={<PassFailTooltip c={tt} />} wrapperStyle={{ zIndex: 50, outline: 'none' }} />
               </PieChart>
             </ResponsiveContainer>
+            {/* Center label */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-slate-800">{activeKpis!.passRate}%</p>
+                <p className="text-[10px] text-slate-500">{es ? 'Aprobados' : 'Pass Rate'}</p>
+              </div>
+            </div>
           </div>
           <div className="flex justify-center gap-4 mt-2">
             {passFailData.map((d) => (
-              <div key={d.name} className="flex items-center gap-1.5 text-xs text-slate-400">
+              <div key={d.name} className="flex items-center gap-1.5 text-xs text-slate-500">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
                 {d.name}: {d.value}
               </div>
@@ -372,7 +422,7 @@ export default function OverviewPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Activity breakdown — needs actStats (sims + activities) */}
             <div className="card p-5">
-              <h3 className="text-sm font-semibold text-slate-200 mb-4">{t('activity_breakdown')}</h3>
+              <h3 className="text-sm font-semibold text-slate-700 mb-4">{t('activity_breakdown')}</h3>
               {activitiesLoading ? (
                 <div className="h-64 skeleton rounded-lg" />
               ) : (
@@ -393,25 +443,25 @@ export default function OverviewPage() {
             {/* Top performers — needs userStats (sims only, fast) */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-200">{t('top_performers')}</h3>
+                <h3 className="text-sm font-semibold text-slate-700">{t('top_performers')}</h3>
                 <Link to="/leaderboard" className="text-xs text-accent hover:underline">{t('view_all')}</Link>
               </div>
               <div className="space-y-2">
                 {(activeUserStats ?? []).slice(0, 5).map((u, i) => (
-                  <div key={u.name} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/[0.02] transition-colors">
+                  <div key={u.name} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                      i === 0 ? 'bg-yellow-500/15 text-yellow-500' :
-                      i === 1 ? 'bg-slate-400/15 text-slate-300' :
-                      i === 2 ? 'bg-orange-500/15 text-orange-400' :
-                      'bg-surface text-slate-600'
+                      i === 0 ? 'bg-yellow-100 text-yellow-600' :
+                      i === 1 ? 'bg-gray-100 text-gray-500' :
+                      i === 2 ? 'bg-orange-100 text-orange-500' :
+                      'bg-gray-50 text-slate-400'
                     }`}>{i + 1}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-200 truncate">{u.name}</p>
-                      <p className="text-[11px] text-slate-600">{u.count} {t('simulations_count')}</p>
+                      <p className="text-sm text-slate-700 truncate">{u.name}</p>
+                      <p className="text-[11px] text-slate-400">{u.count} {t('simulations_count')}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-slate-100">{u.avgScore}%</p>
-                      <p className="text-[11px] text-slate-600">{u.passRate}% {t('pass')}</p>
+                      <p className="text-sm font-semibold text-slate-800">{u.avgScore}%</p>
+                      <p className="text-[11px] text-slate-400">{u.passRate}% {t('pass')}</p>
                     </div>
                   </div>
                 ))}
@@ -431,7 +481,7 @@ export default function OverviewPage() {
       <div ref={scoreSentRef}>
         {scoreVisible ? (
           <div className="card p-5">
-            <h3 className="text-sm font-semibold text-slate-200 mb-4">{t('score_distribution')}</h3>
+            <h3 className="text-sm font-semibold text-slate-700 mb-4">{t('score_distribution')}</h3>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={activeScoreDist ?? []} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
@@ -453,28 +503,22 @@ export default function OverviewPage() {
 }
 
 const KpiCard = memo(function KpiCard({
-  icon: Icon, label, value, sub, color,
+  icon: Icon, label, value, sub,
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string; value: string | number; sub: string
   color: 'accent' | 'violet' | 'pass' | 'indigo'
 }) {
-  const colorMap = {
-    accent: 'text-accent bg-accent/10', violet: 'text-violet bg-violet/10',
-    pass:   'text-success bg-success/10', indigo: 'text-indigo bg-indigo/10',
-  }
   return (
-    <div className="card p-4 sm:p-5">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-slate-500 font-medium mb-1 truncate">{label}</p>
-          <p className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight" style={{ color: 'var(--text-base)' }}>{value}</p>
-          <p className="text-[11px] text-slate-600 mt-1 truncate">{sub}</p>
-        </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ml-2 ${colorMap[color]}`}>
-          <Icon className="w-4 h-4" />
+    <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-4 sm:p-5">
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-xs text-slate-500 font-medium truncate">{label}</p>
+        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0 ml-2">
+          <Icon className="w-5 h-5 text-accent" />
         </div>
       </div>
+      <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">{value}</p>
+      <p className="text-[11px] text-slate-400 mt-1 truncate">{sub}</p>
     </div>
   )
 })

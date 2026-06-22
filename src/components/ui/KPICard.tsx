@@ -4,15 +4,6 @@ import { cn } from '../../lib/cn'
 
 type Variant = 'blue' | 'green' | 'amber' | 'red' | 'violet' | 'indigo'
 
-const VARIANT_STYLES: Record<Variant, { icon: string; glow: string; badge: string }> = {
-  blue:   { icon: 'bg-accent/10 text-accent',    glow: 'group-hover:shadow-glow',         badge: 'text-accent bg-accent/10' },
-  green:  { icon: 'bg-success/10 text-success',  glow: 'group-hover:shadow-glow-success', badge: 'text-success bg-success/10' },
-  amber:  { icon: 'bg-warning/10 text-warning',  glow: '',                                badge: 'text-warning bg-warning/10' },
-  red:    { icon: 'bg-danger/10 text-danger',    glow: '',                                badge: 'text-danger bg-danger/10' },
-  violet: { icon: 'bg-violet/10 text-violet',    glow: '',                                badge: 'text-violet bg-violet/10' },
-  indigo: { icon: 'bg-indigo/10 text-indigo',    glow: '',                                badge: 'text-indigo bg-indigo/10' },
-}
-
 interface Props {
   label: string
   value: string | number
@@ -30,52 +21,50 @@ export const KPICard = memo(function KPICard({
   value,
   sublabel,
   icon: Icon,
-  variant = 'blue',
   delta,
   suffix,
   className,
   index = 0,
 }: Props) {
-  const v = VARIANT_STYLES[variant]
-
   return (
     <div
       className={cn(
-        'card group p-5 flex flex-col gap-4 transition-all duration-200 kpi-card-in',
-        v.glow,
+        'bg-white border border-gray-200 shadow-sm rounded-xl p-5 flex flex-col gap-3 kpi-card-in',
         className,
       )}
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      {/* Header */}
+      {/* Header row: label left, icon circle right */}
       <div className="flex items-start justify-between">
-        <p className="text-sm font-medium text-slate-400 leading-tight">{label}</p>
-        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', v.icon)}>
-          <Icon className="w-4 h-4" />
+        <p className="text-xs font-medium text-slate-500 leading-tight">{label}</p>
+        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+          <Icon className="w-5 h-5 text-accent" />
         </div>
       </div>
 
-      {/* Value */}
-      <div className="flex items-end gap-2">
-        <span className="metric-value">
+      {/* Big number */}
+      <div>
+        <span className="text-3xl font-bold text-slate-800">
           {value}
           {suffix && <span className="text-xl text-slate-400 ml-0.5">{suffix}</span>}
         </span>
-        {delta !== undefined && (
-          <span
-            className={cn(
-              'text-xs font-medium px-1.5 py-0.5 rounded mb-1',
-              delta >= 0 ? 'text-success bg-success/10' : 'text-danger bg-danger/10',
-            )}
-          >
-            {delta >= 0 ? '+' : ''}{delta}%
-          </span>
-        )}
       </div>
 
-      {/* Sub-label */}
-      {sublabel && (
-        <p className="text-xs text-slate-600 -mt-2 leading-relaxed">{sublabel}</p>
+      {/* Delta / sub-label row */}
+      {(delta !== undefined || sublabel) && (
+        <div className="flex items-center gap-2 -mt-1">
+          {delta !== undefined && (
+            <span className={cn(
+              'text-xs font-medium flex items-center gap-0.5',
+              delta >= 0 ? 'text-emerald-600' : 'text-danger',
+            )}>
+              {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}% {sublabel ? '' : 'vs previous month'}
+            </span>
+          )}
+          {sublabel && !delta && (
+            <p className="text-xs text-slate-400 leading-relaxed">{sublabel}</p>
+          )}
+        </div>
       )}
     </div>
   )
