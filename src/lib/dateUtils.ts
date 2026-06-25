@@ -1,4 +1,4 @@
-/** Sanfer programme start date — all data before this is pre-production testing */
+/** M8 Pharma programme start date — all data before this is pre-production testing */
 export const DATA_EPOCH = '2026-06-01'
 
 /** Returns the full date range from programme start to today */

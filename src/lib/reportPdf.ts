@@ -91,7 +91,7 @@ export async function downloadReportPDF(r: SimReport): Promise<void> {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     doc.setTextColor(...MUTED)
-    doc.text('Sanfer — Simulador de Ventas · Reporte generado por el dashboard', M, H - 28)
+    doc.text('M8 Pharma — Simulador de Ventas · Reporte generado por el dashboard', M, H - 28)
     doc.text(`${p} / ${pages}`, W - M, H - 28, { align: 'right' })
   }
 

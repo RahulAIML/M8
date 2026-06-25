@@ -278,7 +278,7 @@ export function AIAssistant() {
       ctx +=
         'DASHBOARD DATA: Currently loading or unavailable.\n' +
         'You can still answer general questions about sales enablement,\n' +
-        'coaching best practices, or the Sanfer simulation platform.'
+        'coaching best practices, or the M8 Pharma simulation platform.'
     }
 
     return ctx
@@ -341,7 +341,7 @@ export function AIAssistant() {
     const fullPrompt =
       buildContext() +
       imageInstruction +
-      `\n\nYou are the Sanfer Sales Training AI assistant. Respond in ${lang}. ` +
+      `\n\nYou are the M8 Pharma Sales Training AI assistant. Respond in ${lang}. ` +
       `The user is on the "${pageName}" page. Be concise, data-driven, and actionable.` +
       userQuestion
 
@@ -476,8 +476,8 @@ export function AIAssistant() {
   const canSend = !thinking && !isStreaming && (!!input.trim() || !!attachedImage)
 
   const greeting = language === 'es'
-    ? `¡Hola! Soy el asistente IA de **Sanfer**. Estás en **${pageName}**. Puedo analizar el rendimiento del equipo comercial, comparar líneas de negocio e identificar áreas de mejora. También puedes **pegar o adjuntar imágenes** del dashboard para análisis visual. ¿En qué te puedo ayudar?`
-    : `Hello! I'm the **Sanfer** AI assistant. You're viewing **${pageName}**. I can analyze sales team performance, compare business lines, and identify improvement areas. You can also **paste or attach dashboard screenshots** for visual analysis. How can I help?`
+    ? `¡Hola! Soy el asistente IA de **M8 Pharma**. Estás en **${pageName}**. Puedo analizar el rendimiento del equipo comercial, comparar líneas de negocio e identificar áreas de mejora. También puedes **pegar o adjuntar imágenes** del dashboard para análisis visual. ¿En qué te puedo ayudar?`
+    : `Hello! I'm the **M8 Pharma** AI assistant. You're viewing **${pageName}**. I can analyze sales team performance, compare business lines, and identify improvement areas. You can also **paste or attach dashboard screenshots** for visual analysis. How can I help?`
 
   // ─────────────────────────────────────────────
   // Render
