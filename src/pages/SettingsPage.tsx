@@ -79,7 +79,7 @@ export default function SettingsPage() {
         </h2>
         <div className="space-y-3">
           {[
-            { label: es ? 'Nombre' : 'Name', value: es ? 'Sanfer Inteligencia de Entrenamiento IA' : 'Sanfer AI Training Intelligence' },
+            { label: es ? 'Nombre' : 'Name', value: es ? 'Inteligencia de Entrenamiento IA' : 'AI Training Intelligence' },
             { label: es ? 'Versión' : 'Version', value: '2.0.0' },
           ].map((row) => (
             <div key={row.label} className="flex items-center justify-between text-sm border-b border-line/20 pb-2 last:border-0 last:pb-0">
