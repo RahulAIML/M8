@@ -13,7 +13,7 @@ interface Props {
   onClose: () => void
 }
 
-const REPORT_BASE = 'https://rolplay.app/reportes/visor-usecase.php?&saex='
+const REPORT_BASE = 'https://rolplay.app/index.php?uc='
 
 // ─── sub-components ──────────────────────────────────────────────────────────
 

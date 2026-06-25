@@ -212,16 +212,6 @@ export default function SimulationsPage() {
                               <FileText className="w-3.5 h-3.5" />
                               {t('report_btn')}
                             </button>
-                            <a
-                              href={`https://rolplay.app/reportes/visor-usecase.php?&saex=${s.ID_Sim}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-1.5 text-xs text-slate-400 border border-line/50 hover:text-slate-100 hover:border-line rounded-lg px-3 py-1.5 transition-colors"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              {t('report_download')}
-                            </a>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {[1, 2, 3, 4, 5, 6].map((r) => {

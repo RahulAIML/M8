@@ -78,10 +78,10 @@ export async function fetchSimulations(
        rs.name                            AS Caso_de_Uso,
        u.email                            AS Usuario,
        u.name                             AS Usuario_Nombre,
-       us.score                           AS Calificacion,
+       ROUND(us.score * 100)              AS Calificacion,
        IF(us.passed_flag = 1, 'si', 'no') AS Diagnostico_Final,
        us.date_created                    AS Fecha_y_Hora,
-       us.score                           AS Puntos_Totales,
+       ROUND(us.score * 100)              AS Puntos_Totales,
        NULL AS Pregunta_1, NULL AS Pregunta_2, NULL AS Pregunta_3,
        NULL AS Pregunta_4, NULL AS Pregunta_5, NULL AS Pregunta_6,
        NULL AS Puntos_1,   NULL AS Puntos_2,   NULL AS Puntos_3,
@@ -116,7 +116,7 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
        u.email             AS Usuario,
        u.name              AS Usuario_Nombre,
        us.date_created     AS Fecha_y_Hora,
-       us.score            AS Calificacion,
+       ROUND(us.score * 100) AS Calificacion,
        rs.name             AS Producto
      FROM r_user_session us
      JOIN r_user      u  ON u.ID  = us.user_id

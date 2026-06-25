@@ -28,15 +28,7 @@ export const TopBar = memo(function TopBar() {
         >
           <Menu className="w-4 h-4" />
         </button>
-        <div className="flex items-center gap-3">
-          <img src="/m8-logo.svg" height={32} alt="M8 Pharma" className="w-auto shrink-0" style={{ maxHeight: 32 }} />
-          <div className="hidden sm:flex flex-col">
-            <span className="text-slate-800 font-bold text-sm leading-tight">M8 Pharma</span>
-            <span className="text-slate-400 text-[10px] leading-tight">Analytics &amp; Training</span>
-          </div>
-        </div>
-        <div className="hidden lg:block w-px h-8 bg-gray-200 mx-2" />
-        <h1 className="hidden lg:block text-slate-800 font-bold text-lg">
+        <h1 className="text-slate-800 font-bold text-lg">
           {language === 'es' ? 'Plataforma de Análisis M8' : 'M8 Analytics Platform'}
         </h1>
       </div>
