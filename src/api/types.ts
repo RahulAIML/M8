@@ -133,7 +133,7 @@ export interface AdminsResponse {
 }
 
 // ─────────────────────────────────────────────
-// DIM_LINE (tag1) — M8 pharma-specific
+// DIM_LINE (tag1) — M8 Pharma-specific
 // ─────────────────────────────────────────────
 export interface LineTag {
   id: number

@@ -358,7 +358,7 @@ const t = {
     filter_apply: 'Apply',
 
     page_overview_title: 'Overview',
-    page_overview_subtitle: 'Executive summary of the M8 pharma sales simulator',
+    page_overview_subtitle: 'Executive summary of the M8 Pharma sales simulator',
     page_sims_title: 'Simulations',
     page_sims_subtitle: 'Complete record of simulation sessions',
     page_conv_title: 'Conversational Intelligence',
@@ -377,7 +377,7 @@ const t = {
     ai_title: 'AI Assistant',
     ai_subtitle: 'Powered by Rolplay',
     ai_placeholder: 'Ask about team performance...',
-    ai_greeting: "Hello! I'm the M8 pharma AI assistant. I can help you analyze sales team performance, compare business lines, identify improvement areas, and generate insights from simulation data. How can I help?",
+    ai_greeting: "Hello! I'm the M8 Pharma AI assistant. I can help you analyze sales team performance, compare business lines, identify improvement areas, and generate insights from simulation data. How can I help?",
     ai_no_key: 'Set VITE_GEMINI_API_KEY in your .env file to enable the AI Assistant.',
     ai_error: 'Error connecting to Gemini. Check your API key.',
     ai_thinking: 'Analyzing data...',
@@ -523,7 +523,7 @@ const t = {
 
     // Certification page
     nav_certification: 'Certification',
-    cert_title: 'M8 pharma Certification',
+    cert_title: 'M8 Pharma Certification',
     cert_subtitle: 'June 2026 — June 8 to 22',
     cert_window_badge: 'Period: Jun 8 – 22, 2026',
     cert_kpi_lines: 'Lines',
