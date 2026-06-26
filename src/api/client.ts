@@ -73,15 +73,19 @@ export async function fetchSimulations(
   const { from: effFrom, to: effTo } = resolveEffectiveDates(from ?? null, to ?? null)
   const rows = await remoteSQL<Simulation>(
     `SELECT
-       us.ID                              AS ID_Sim,
-       us.simulator_id                    AS ID_Caso_de_Uso,
-       rs.name                            AS Caso_de_Uso,
-       u.email                            AS Usuario,
-       u.name                             AS Usuario_Nombre,
-       CASE WHEN us.score IS NULL THEN NULL WHEN us.score > 100 THEN LEAST(ROUND(us.score / 100.0), 100) WHEN us.score <= 1 THEN ROUND(us.score * 100) ELSE ROUND(us.score) END AS Calificacion,
-       IF(us.passed_flag = 1, 'si', 'no') AS Diagnostico_Final,
-       us.date_created                    AS Fecha_y_Hora,
-       CASE WHEN us.score IS NULL THEN NULL WHEN us.score > 100 THEN LEAST(ROUND(us.score / 100.0), 100) WHEN us.score <= 1 THEN ROUND(us.score * 100) ELSE ROUND(us.score) END AS Puntos_Totales,
+       s.ID_Sim,
+       s.ID_Caso_de_Uso,
+       s.Caso_de_Uso,
+       s.Usuario,
+       s.Usuario_Nombre,
+       CASE WHEN s.raw_score IS NULL THEN NULL
+            ELSE LEAST(100, GREATEST(0, ROUND(s.raw_score))) END AS Calificacion,
+       CASE WHEN s.score_db > 0 THEN IF(s.passed_flag_db = 1, 'si', 'no')
+            WHEN s.raw_score IS NOT NULL THEN IF(ROUND(s.raw_score) >= 80, 'si', 'no')
+            ELSE 'no' END AS Diagnostico_Final,
+       s.Fecha_y_Hora,
+       CASE WHEN s.raw_score IS NULL THEN NULL
+            ELSE LEAST(100, GREATEST(0, ROUND(s.raw_score))) END AS Puntos_Totales,
        NULL AS Pregunta_1, NULL AS Pregunta_2, NULL AS Pregunta_3,
        NULL AS Pregunta_4, NULL AS Pregunta_5, NULL AS Pregunta_6,
        NULL AS Puntos_1,   NULL AS Puntos_2,   NULL AS Puntos_3,
@@ -91,14 +95,34 @@ export async function fetchSimulations(
        NULL AS Retroalimentacion_1, NULL AS Retroalimentacion_2,
        NULL AS Retroalimentacion_3, NULL AS Retroalimentacion_4,
        NULL AS Retroalimentacion_5, NULL AS Retroalimentacion_6
-     FROM r_user_session us
-     JOIN r_user u      ON u.ID  = us.user_id
-     JOIN r_simulator rs ON rs.ID = us.simulator_id
-     WHERE us.simulator_id IN (${IDS_SQL})
-       AND u.client_id = ${M8_CLIENT_ID}
-       AND us.date_created >= '${effFrom}'
-       AND us.date_created < DATE_ADD('${effTo}', INTERVAL 1 DAY)
-     ORDER BY us.date_created DESC`,
+     FROM (
+       SELECT
+         us.ID                AS ID_Sim,
+         us.simulator_id      AS ID_Caso_de_Uso,
+         rs.name              AS Caso_de_Uso,
+         u.email              AS Usuario,
+         u.name               AS Usuario_Nombre,
+         us.date_created      AS Fecha_y_Hora,
+         us.score             AS score_db,
+         us.passed_flag       AS passed_flag_db,
+         CASE
+           WHEN us.score > 0 THEN CAST(us.score AS DECIMAL(10,2))
+           WHEN us.raw_closing_data IS NOT NULL AND us.raw_closing_data != ''
+             THEN COALESCE(
+               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.raw_closing_data, '$.score_bar'))    AS DECIMAL(10,2)),
+               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.raw_closing_data, '$.overall_score')) AS DECIMAL(10,2))
+             )
+           ELSE NULL
+         END AS raw_score
+       FROM r_user_session us
+       JOIN r_user u       ON u.ID  = us.user_id
+       JOIN r_simulator rs ON rs.ID = us.simulator_id
+       WHERE us.simulator_id IN (${IDS_SQL})
+         AND u.client_id = ${M8_CLIENT_ID}
+         AND us.date_created >= '${effFrom}'
+         AND us.date_created < DATE_ADD('${effTo}', INTERVAL 1 DAY)
+     ) s
+     ORDER BY s.Fecha_y_Hora DESC`,
     signal,
   )
   return rows
@@ -111,17 +135,36 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
     Fecha_y_Hora: string | null; Calificacion: number | null; Producto: string
   }>(
     `SELECT
-       us.ID               AS ID_Sim,
-       us.simulator_id     AS ID_Caso_de_Uso,
-       u.email             AS Usuario,
-       u.name              AS Usuario_Nombre,
-       us.date_created     AS Fecha_y_Hora,
-       CASE WHEN us.score IS NULL THEN NULL WHEN us.score > 100 THEN LEAST(ROUND(us.score / 100.0), 100) WHEN us.score <= 1 THEN ROUND(us.score * 100) ELSE ROUND(us.score) END AS Calificacion,
-       rs.name             AS Producto
-     FROM r_user_session us
-     JOIN r_user      u  ON u.ID  = us.user_id
-     JOIN r_simulator rs ON rs.ID = us.simulator_id
-     WHERE us.ID = ${id}`,
+       s.ID_Sim,
+       s.ID_Caso_de_Uso,
+       s.Usuario,
+       s.Usuario_Nombre,
+       s.Fecha_y_Hora,
+       CASE WHEN s.raw_score IS NULL THEN NULL
+            ELSE LEAST(100, GREATEST(0, ROUND(s.raw_score))) END AS Calificacion,
+       s.Producto
+     FROM (
+       SELECT
+         us.ID               AS ID_Sim,
+         us.simulator_id     AS ID_Caso_de_Uso,
+         u.email             AS Usuario,
+         u.name              AS Usuario_Nombre,
+         us.date_created     AS Fecha_y_Hora,
+         rs.name             AS Producto,
+         CASE
+           WHEN us.score > 0 THEN CAST(us.score AS DECIMAL(10,2))
+           WHEN us.raw_closing_data IS NOT NULL AND us.raw_closing_data != ''
+             THEN COALESCE(
+               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.raw_closing_data, '$.score_bar'))    AS DECIMAL(10,2)),
+               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.raw_closing_data, '$.overall_score')) AS DECIMAL(10,2))
+             )
+           ELSE NULL
+         END AS raw_score
+       FROM r_user_session us
+       JOIN r_user      u  ON u.ID  = us.user_id
+       JOIN r_simulator rs ON rs.ID = us.simulator_id
+       WHERE us.ID = ${id}
+     ) s`,
     signal,
   )
   if (!session) throw new Error(`Session ${id} not found`)

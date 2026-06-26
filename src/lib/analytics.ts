@@ -224,7 +224,7 @@ export function computeTrend(sims: Simulation[]): TrendPoint[] {
   const sorted = Object.entries(byDate)
     .map(([date, group]) => ({
       date,
-      avgScore: Math.round(avg(group.map((s) => s.Calificacion ?? 0))),
+      avgScore: Math.round(avg(group.map((s) => Number(s.Calificacion ?? 0)))),
       count:    group.length,
       passRate: pct(
         group.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length,
@@ -333,7 +333,7 @@ export function computeUserStats(sims: Simulation[]): UserStat[] {
     .map(([name, group]) => {
       const passCount = group.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
       // Use reduce to avoid stack overflow on large groups
-      const bestScore = group.reduce((m, s) => Math.max(m, s.Calificacion ?? 0), 0)
+      const bestScore = group.reduce((m, s) => Math.max(m, Number(s.Calificacion ?? 0)), 0)
       return {
         name,
         userId:    group[0].Usuario,
