@@ -113,11 +113,23 @@ export async function fetchSimulations(
                CAST(JSON_UNQUOTE(JSON_EXTRACT(us.raw_closing_data, '$.overall_score')) AS DECIMAL(10,2))
              )
            WHEN us.closing_analysis IS NOT NULL AND us.closing_analysis != ''
-             THEN COALESCE(
-               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.closing_analysis, '$.score_bar'))    AS DECIMAL(10,2)),
-               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.closing_analysis, '$.overall_score')) AS DECIMAL(10,2)),
-               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.closing_analysis, '$.score'))         AS DECIMAL(10,2))
-             )
+             THEN CASE
+               WHEN LOCATE('score-number">', us.closing_analysis) > 0
+                 THEN CAST(SUBSTRING(
+                   us.closing_analysis,
+                   LOCATE('score-number">', us.closing_analysis) + 14,
+                   LOCATE('</div>', us.closing_analysis, LOCATE('score-number">', us.closing_analysis))
+                     - (LOCATE('score-number">', us.closing_analysis) + 14)
+                 ) AS DECIMAL(10,2)) * 10
+               WHEN LOCATE('rpt-score-num">', us.closing_analysis) > 0
+                 THEN CAST(SUBSTRING(
+                   us.closing_analysis,
+                   LOCATE('rpt-score-num">', us.closing_analysis) + 15,
+                   LOCATE('</div>', us.closing_analysis, LOCATE('rpt-score-num">', us.closing_analysis))
+                     - (LOCATE('rpt-score-num">', us.closing_analysis) + 15)
+                 ) AS DECIMAL(10,2))
+               ELSE NULL
+             END
            ELSE NULL
          END AS raw_score
        FROM r_user_session us
@@ -165,11 +177,23 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
                CAST(JSON_UNQUOTE(JSON_EXTRACT(us.raw_closing_data, '$.overall_score')) AS DECIMAL(10,2))
              )
            WHEN us.closing_analysis IS NOT NULL AND us.closing_analysis != ''
-             THEN COALESCE(
-               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.closing_analysis, '$.score_bar'))    AS DECIMAL(10,2)),
-               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.closing_analysis, '$.overall_score')) AS DECIMAL(10,2)),
-               CAST(JSON_UNQUOTE(JSON_EXTRACT(us.closing_analysis, '$.score'))         AS DECIMAL(10,2))
-             )
+             THEN CASE
+               WHEN LOCATE('score-number">', us.closing_analysis) > 0
+                 THEN CAST(SUBSTRING(
+                   us.closing_analysis,
+                   LOCATE('score-number">', us.closing_analysis) + 14,
+                   LOCATE('</div>', us.closing_analysis, LOCATE('score-number">', us.closing_analysis))
+                     - (LOCATE('score-number">', us.closing_analysis) + 14)
+                 ) AS DECIMAL(10,2)) * 10
+               WHEN LOCATE('rpt-score-num">', us.closing_analysis) > 0
+                 THEN CAST(SUBSTRING(
+                   us.closing_analysis,
+                   LOCATE('rpt-score-num">', us.closing_analysis) + 15,
+                   LOCATE('</div>', us.closing_analysis, LOCATE('rpt-score-num">', us.closing_analysis))
+                     - (LOCATE('rpt-score-num">', us.closing_analysis) + 15)
+                 ) AS DECIMAL(10,2))
+               ELSE NULL
+             END
            ELSE NULL
          END AS raw_score
        FROM r_user_session us
