@@ -226,15 +226,21 @@ export function SimReportModal({ simId, language, onClose }: Props) {
             </button>
 
             {/* Open in RolPlay platform — external link, requires platform login */}
-            <a
-              href={`https://rolplay.app/simulaciones`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={es ? 'Ver en RolPlay (requiere sesión)' : 'View on RolPlay (requires login)'}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
+            {report ? (
+              <a
+                href={`https://rolplay.app/index.php?uc=${report.ID_Caso_de_Uso}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={es ? 'Abrir simulador en RolPlay (requiere sesión)' : 'Open simulator on RolPlay (requires login)'}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            ) : (
+              <span className="p-1.5 shrink-0 opacity-30 cursor-not-allowed">
+                <ExternalLink className="w-4 h-4 text-slate-500" />
+              </span>
+            )}
 
             <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0">
               <X className="w-4 h-4" />
