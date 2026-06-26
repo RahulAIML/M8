@@ -224,12 +224,12 @@ export default function OverviewPage() {
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
-          {es ? 'Bienvenido a tu panel' : 'Welcome your dashboard'}
+          {t('page_overview_title')}
         </h1>
         <p className="text-slate-500 text-sm mt-0.5">
           {es
-            ? `Tu equipo ha completado ${activeKpis?.totalSimulations ?? '…'} simulaciones este mes.`
-            : `Your team has completed ${activeKpis?.totalSimulations ?? '…'} simulations this month.`}
+            ? `${activeKpis?.totalSimulations ?? '…'} simulaciones registradas en el período seleccionado.`
+            : `${activeKpis?.totalSimulations ?? '…'} simulations recorded in the selected period.`}
         </p>
       </div>
 

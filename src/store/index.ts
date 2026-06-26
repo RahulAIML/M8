@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type Language = 'es' | 'en'
 export type Theme = 'light' | 'dark'
@@ -28,27 +29,39 @@ interface AppState {
   setMobileMenuOpen: (v: boolean) => void
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  language: 'es',
-  theme: 'light',
-  sidebarCollapsed: false,
-  aiOpen: false,
-  selectedActivityId: null,
-  selectedLineId: null,
-  dateFrom: null,
-  dateTo: null,
-  mobileMenuOpen: false,
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      language: 'es',
+      theme: 'dark',
+      sidebarCollapsed: false,
+      aiOpen: false,
+      selectedActivityId: null,
+      selectedLineId: null,
+      dateFrom: null,
+      dateTo: null,
+      mobileMenuOpen: false,
 
-  setLanguage: (lang) => set({ language: lang }),
-  toggleTheme: () => set((s) => ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-  setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
-  toggleAI: () => set((s) => ({ aiOpen: !s.aiOpen })),
-  setAIOpen: (v) => set({ aiOpen: v }),
-  setActivityFilter: (id) => set({ selectedActivityId: id }),
-  setLineFilter: (id) => set({ selectedLineId: id }),
-  setDateRange: (from, to) => set({ dateFrom: from, dateTo: to }),
-  clearFilters: () => set({ selectedActivityId: null, selectedLineId: null, dateFrom: null, dateTo: null }),
-  toggleMobileMenu: () => set((s) => ({ mobileMenuOpen: !s.mobileMenuOpen })),
-  setMobileMenuOpen: (v) => set({ mobileMenuOpen: v }),
-}))
+      setLanguage: (lang) => set({ language: lang }),
+      toggleTheme: () => set((s) => ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
+      toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
+      toggleAI: () => set((s) => ({ aiOpen: !s.aiOpen })),
+      setAIOpen: (v) => set({ aiOpen: v }),
+      setActivityFilter: (id) => set({ selectedActivityId: id }),
+      setLineFilter: (id) => set({ selectedLineId: id }),
+      setDateRange: (from, to) => set({ dateFrom: from, dateTo: to }),
+      clearFilters: () => set({ selectedActivityId: null, selectedLineId: null, dateFrom: null, dateTo: null }),
+      toggleMobileMenu: () => set((s) => ({ mobileMenuOpen: !s.mobileMenuOpen })),
+      setMobileMenuOpen: (v) => set({ mobileMenuOpen: v }),
+    }),
+    {
+      name: 'm8-app-prefs',
+      partialize: (s) => ({
+        language: s.language,
+        theme: s.theme,
+        sidebarCollapsed: s.sidebarCollapsed,
+      }),
+    },
+  ),
+)

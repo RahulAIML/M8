@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Calendar, X } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { DATA_EPOCH } from '../../lib/dateUtils'
+import { useAppStore } from '../../store'
+import { useTranslation } from '../../lib/i18n'
 
 interface Props {
   from: string
@@ -22,6 +24,8 @@ const PRESETS: Preset[] = [
 ]
 
 export function DateRangeFilter({ from, to, onApply, label, className }: Props) {
+  const language = useAppStore((s) => s.language)
+  const t = useTranslation(language)
   const [pendingFrom, setPendingFrom] = useState(from)
   const [pendingTo,   setPendingTo]   = useState(to)
 
@@ -77,7 +81,7 @@ export function DateRangeFilter({ from, to, onApply, label, className }: Props) 
           onClick={() => onApply(pendingFrom, pendingTo)}
           className="text-[11px] px-2.5 py-1 rounded-lg bg-accent/10 border border-accent/40 text-accent hover:bg-accent/20 transition-colors leading-none"
         >
-          Aplicar ✓
+          {t('filter_apply')} ✓
         </button>
       )}
 
