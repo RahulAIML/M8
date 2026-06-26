@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { fetchActivities, fetchAdmins, fetchLines, fetchMembers, fetchObjections, fetchSimReport, fetchSimulations } from './client'
+import { fetchActivities, fetchAdmins, fetchConversationStats, fetchLines, fetchMembers, fetchObjections, fetchSimReport, fetchSimulations } from './client'
 import { resolveEffectiveDates } from '../lib/dateUtils'
 
 // ─────────────────────────────────────────────
@@ -118,6 +118,18 @@ export function useObjections(dateFrom: string | null = null, dateTo: string | n
     gcTime:          GC.simulations,
     placeholderData: keepPreviousData,
     select:          (res) => res.data,
+  })
+}
+
+/** Per-session turn counts — drives conversation funnel + depth analytics */
+export function useConversationStats(dateFrom: string | null = null, dateTo: string | null = null) {
+  const { from, to } = resolveEffectiveDates(dateFrom, dateTo)
+  return useQuery({
+    queryKey:        ['conversationStats', from, to],
+    queryFn:         ({ signal }) => fetchConversationStats(from, to, signal),
+    staleTime:       STALE.simulations,
+    gcTime:          GC.simulations,
+    placeholderData: keepPreviousData,
   })
 }
 
