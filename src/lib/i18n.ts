@@ -75,6 +75,7 @@ const t = {
     // Status
     status_pass: 'Aprobado',
     status_fail: 'Reprobado',
+    status_incomplete: 'Incompleto',
     status_active: 'Activo',
     status_inactive: 'Inactivo',
 
@@ -347,6 +348,7 @@ const t = {
 
     status_pass: 'Passed',
     status_fail: 'Failed',
+    status_incomplete: 'Incomplete',
     status_active: 'Active',
     status_inactive: 'Inactive',
 
