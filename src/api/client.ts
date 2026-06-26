@@ -80,8 +80,7 @@ export async function fetchSimulations(
        s.Usuario_Nombre,
        CASE WHEN s.raw_score IS NULL THEN NULL
             ELSE LEAST(100, GREATEST(0, ROUND(s.raw_score))) END AS Calificacion,
-       CASE WHEN s.score_db > 0 THEN IF(s.passed_flag_db = 1, 'si', 'no')
-            WHEN s.raw_score IS NOT NULL THEN IF(ROUND(s.raw_score) >= 80, 'si', 'no')
+       CASE WHEN s.raw_score IS NOT NULL THEN IF(ROUND(s.raw_score) >= 70, 'si', 'no')
             ELSE 'no' END AS Diagnostico_Final,
        s.Fecha_y_Hora,
        CASE WHEN s.raw_score IS NULL THEN NULL
