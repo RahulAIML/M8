@@ -82,9 +82,20 @@ export default function BusinessLinesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-50 tracking-tight">{t('page_lines_title')}</h1>
           <p className="text-slate-500 text-sm mt-0.5">{t('page_lines_subtitle')}</p>
         </div>
-        <div className="card p-12 flex flex-col items-center gap-3 text-center">
-          <GitBranch className="w-10 h-10 text-slate-600" />
-          <p className="text-slate-400 text-sm">{t('lines_no_data')}</p>
+        <div className="card p-12 flex flex-col items-center gap-4 text-center max-w-lg mx-auto">
+          <div className="w-14 h-14 rounded-2xl bg-slate-800/60 border border-line/40 flex items-center justify-center">
+            <GitBranch className="w-7 h-7 text-slate-500" />
+          </div>
+          <div>
+            <p className="text-slate-300 text-sm font-medium mb-1">
+              {es ? 'Sin segmentación por línea' : 'No line segmentation'}
+            </p>
+            <p className="text-slate-500 text-xs leading-relaxed max-w-sm">
+              {es
+                ? 'M8 Pharma opera como un equipo unificado sin división por líneas de negocio. Consulta la Vista General o Simulaciones para el análisis completo del equipo.'
+                : 'M8 Pharma operates as a unified team without business line segmentation. See Overview or Simulations for full team analytics.'}
+            </p>
+          </div>
         </div>
       </div>
     )

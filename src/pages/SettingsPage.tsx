@@ -95,8 +95,8 @@ export default function SettingsPage() {
         <Info className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
         <p className="text-xs text-slate-500">
           {es
-            ? 'Configuraciones avanzadas de usuarios, permisos y notificaciones estarán disponibles en futuras versiones.'
-            : 'Advanced user settings, permissions, and notifications will be available in future versions.'}
+            ? 'Los cambios de idioma y tema se aplican de forma inmediata y se mantienen entre sesiones.'
+            : 'Language and theme changes take effect immediately and are preserved across sessions.'}
         </p>
       </div>
     </div>
