@@ -90,14 +90,17 @@ export interface QuickKPIs {
   activeAdvisors:   number
   passCount:        number
   failCount:        number
+  incompleteCount:  number
   bestScore:        number
   worstScore:       number
 }
 
 /** O(N) — derives the 4 primary KPIs from simulations only. No org data required. */
 export function computeQuickKPIs(sims: Simulation[]): QuickKPIs {
-  const passCount = sims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
-  const advisors  = new Set(sims.map((s) => s.Usuario_Nombre).filter(Boolean))
+  const passCount       = sims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
+  const incompleteCount = sims.filter((s) => s.Calificacion === null || s.Calificacion === undefined).length
+  const failCount       = sims.length - passCount - incompleteCount
+  const advisors        = new Set(sims.map((s) => s.Usuario_Nombre).filter(Boolean))
   let bestScore  = 0
   let worstScore = 0
   const scored = sims.filter((s) => s.Calificacion !== null && s.Calificacion !== undefined)
@@ -113,7 +116,8 @@ export function computeQuickKPIs(sims: Simulation[]): QuickKPIs {
     passRate:         pct(passCount, sims.length),
     activeAdvisors:   advisors.size,
     passCount,
-    failCount:  sims.length - passCount,
+    failCount,
+    incompleteCount,
     bestScore,
     worstScore,
   }
@@ -136,6 +140,7 @@ export interface DashboardKPIs {
   worstScore: number
   passCount: number
   failCount: number
+  incompleteCount: number
 }
 
 export function computeKPIs(
@@ -144,10 +149,11 @@ export function computeKPIs(
   members: Member[],
   admins: Administrator[],
 ): DashboardKPIs {
-  const passCount = sims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
-  const advisors  = new Set(sims.map((s) => s.Usuario_Nombre).filter(Boolean))
+  const passCount       = sims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
+  const incompleteCount = sims.filter((s) => s.Calificacion === null || s.Calificacion === undefined).length
+  const failCount       = sims.length - passCount - incompleteCount
+  const advisors        = new Set(sims.map((s) => s.Usuario_Nombre).filter(Boolean))
 
-  // Use Math.max/min with reduce to avoid stack overflow on large arrays
   let bestScore  = 0
   let worstScore = 0
   const scored = sims.filter((s) => s.Calificacion !== null && s.Calificacion !== undefined)
@@ -164,14 +170,14 @@ export function computeKPIs(
     passRate:         pct(passCount, sims.length),
     activeAdvisors:   advisors.size,
     totalActivities:  activities.length,
-    // Prefer the count field from the API response when available
     totalMembers:     members.length,
     totalAdmins:      admins.filter((a) => a.rpa_profile_type === 'admin').length,
     totalSupervisors: admins.filter((a) => a.rpa_profile_type === 'supervisor').length,
     bestScore,
     worstScore,
     passCount,
-    failCount: sims.length - passCount,
+    failCount,
+    incompleteCount,
   }
 }
 
@@ -224,7 +230,7 @@ export function computeTrend(sims: Simulation[]): TrendPoint[] {
   const sorted = Object.entries(byDate)
     .map(([date, group]) => ({
       date,
-      avgScore: Math.round(avg(group.map((s) => Number(s.Calificacion ?? 0)))),
+      avgScore: avgScore(group),
       count:    group.length,
       passRate: pct(
         group.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length,
@@ -294,6 +300,8 @@ export function computeActivityStats(
     const numId     = Number(id)
     const act       = actMap.get(numId)
     const passCount = group.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
+    const incCount  = group.filter((s) => s.Calificacion === null || s.Calificacion === undefined).length
+    const failCount = group.length - passCount - incCount
     return {
       id:           numId,
       name:         act?.Caso_de_Uso     ?? `Activity ${id}`,
@@ -302,7 +310,7 @@ export function computeActivityStats(
       avgScore:     avgScore(group),
       passRate:     pct(passCount, group.length),
       passCount,
-      failCount: group.length - passCount,
+      failCount,
     }
   })
 }
@@ -332,8 +340,8 @@ export function computeUserStats(sims: Simulation[]): UserStat[] {
   return Object.entries(byUser)
     .map(([name, group]) => {
       const passCount = group.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
-      // Use reduce to avoid stack overflow on large groups
-      const bestScore = group.reduce((m, s) => Math.max(m, Number(s.Calificacion ?? 0)), 0)
+      const scoredGroup = group.filter((s) => s.Calificacion !== null && s.Calificacion !== undefined)
+      const bestScore   = scoredGroup.length ? scoredGroup.reduce((m, s) => Math.max(m, Number(s.Calificacion)), 0) : 0
       return {
         name,
         userId:    group[0].Usuario,

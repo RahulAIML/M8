@@ -21,7 +21,7 @@ import { Link } from 'react-router-dom'
 import { useChartColors } from '../lib/chartTheme'
 import { TooltipShell, TRow, TTitle, useTooltipColors, type TooltipColors } from '../components/charts/TooltipShell'
 
-const COLORS = { pass: '#E52B2B', fail: '#fecdd3', accent: '#E52B2B', violet: '#8B5CF6' }
+const COLORS = { pass: '#10B981', fail: '#EF4444', incomplete: '#64748b', accent: '#6366f1', violet: '#8B5CF6' }
 
 function TrendTooltip({ active, payload, label, es, c }: { active?: boolean; payload?: any[]; label?: string; es: boolean; c: TooltipColors }) {
   if (!active || !payload?.length) return null
@@ -171,8 +171,9 @@ export default function OverviewPage() {
       [es ? 'Puntaje Promedio'   : 'Average Score',     `${activeKpis.averageScore}%`],
       [es ? 'Tasa de Aprobación' : 'Pass Rate',         `${activeKpis.passRate}%`],
       [es ? 'Asesores Activos'   : 'Active Advisors',   activeKpis.activeAdvisors],
-      [es ? 'Aprobados'          : 'Passed',            activeKpis.passCount],
-      [es ? 'Reprobados'         : 'Failed',            activeKpis.failCount],
+      [es ? 'Aprobados'          : 'Passed',      activeKpis.passCount],
+      [es ? 'Reprobados'         : 'Failed',      activeKpis.failCount],
+      [es ? 'Incompletos'        : 'Incomplete',  activeKpis.incompleteCount],
       ...(activeActStats ?? []).map((a) => [a.name, a.count]),
     ], `m8_sim_overview_${csvDate()}.csv`)
   }
@@ -208,6 +209,9 @@ export default function OverviewPage() {
   const passFailData = [
     { name: t('pass'), value: activeKpis!.passCount, color: COLORS.pass },
     { name: t('fail'), value: activeKpis!.failCount, color: COLORS.fail },
+    ...(activeKpis!.incompleteCount > 0
+      ? [{ name: t('status_incomplete'), value: activeKpis!.incompleteCount, color: COLORS.incomplete }]
+      : []),
   ]
 
   const topActivities = (activeActStats ?? []).slice(0, 5).map((a) => ({

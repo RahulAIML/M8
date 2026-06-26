@@ -33,10 +33,11 @@ export default function CertificationPage() {
     for (const s of sims) {
       const em = (s.Usuario ?? '').toLowerCase()
       if (!em) continue
+      if (s.Calificacion === null || s.Calificacion === undefined) continue
       if (!map.has(em)) map.set(em, { name: s.Usuario_Nombre ?? em, scores: new Map() })
       const entry = map.get(em)!
       if (s.Usuario_Nombre) entry.name = s.Usuario_Nombre
-      entry.scores.set(s.ID_Caso_de_Uso, Math.max(entry.scores.get(s.ID_Caso_de_Uso) ?? 0, Number(s.Calificacion ?? 0)))
+      entry.scores.set(s.ID_Caso_de_Uso, Math.max(entry.scores.get(s.ID_Caso_de_Uso) ?? 0, Number(s.Calificacion)))
     }
     return map
   }, [sims])
