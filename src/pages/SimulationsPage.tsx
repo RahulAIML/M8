@@ -8,11 +8,16 @@ import { DateRangeFilter } from '../components/ui/DateRangeFilter'
 import { SimReportModal } from '../components/ui/SimReportModal'
 import {
   Search, Calendar, CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, BadgeCheck, FileText, Target, ListChecks, Gauge, Lock, Download,
+  ChevronLeft, ChevronRight, BadgeCheck, FileText, Target, ListChecks, Gauge, Lock,
+  ChevronsUpDown,
 } from 'lucide-react'
 import { cn } from '../lib/cn'
 
 const PAGE_SIZE = 50
+
+type StatusFilter = 'all' | 'pass' | 'fail' | 'incomplete'
+type SortCol     = 'advisor' | 'activity' | 'date' | 'score' | 'status'
+type SortDir     = 'asc' | 'desc'
 
 const CRITERIA: { icon: React.ComponentType<{ className?: string }>; titleKey: TKey; descKey: TKey }[] = [
   { icon: Target,     titleKey: 'criteria_verdict_t', descKey: 'criteria_verdict_d' },
@@ -21,22 +26,35 @@ const CRITERIA: { icon: React.ComponentType<{ className?: string }>; titleKey: T
   { icon: Lock,       titleKey: 'criteria_attempt_t', descKey: 'criteria_attempt_d' },
 ]
 
+function simStatus(cal: number | null | undefined, diag: string | null | undefined): 'pass' | 'fail' | 'incomplete' {
+  if (cal === null || cal === undefined) return 'incomplete'
+  return diag?.toLowerCase() === 'si' ? 'pass' : 'fail'
+}
+
+function SortIcon({ col, sortCol, sortDir }: { col: SortCol; sortCol: SortCol; sortDir: SortDir }) {
+  if (col !== sortCol) return <ChevronsUpDown className="w-3 h-3 opacity-30 ml-1 inline-block" />
+  return sortDir === 'asc'
+    ? <ChevronUp className="w-3 h-3 ml-1 inline-block text-accent" />
+    : <ChevronDown className="w-3 h-3 ml-1 inline-block text-accent" />
+}
+
 export default function SimulationsPage() {
   const { language } = useAppStore()
   const t = useTranslation(language)
   const { isLoading, isError, sims, activities, refetch } = useDashboardData()
 
-  // Global date range — same store the Overview page uses
   const dateFrom     = useAppStore((s) => s.dateFrom)
   const dateTo       = useAppStore((s) => s.dateTo)
   const setDateRange = useAppStore((s) => s.setDateRange)
 
-  // All hooks declared unconditionally — before any conditional returns
   const [searchRaw,    setSearchRaw]    = useState('')
   const [expandedId,   setExpandedId]   = useState<number | null>(null)
   const [page,         setPage]         = useState(0)
   const [showCriteria, setShowCriteria] = useState(false)
   const [reportSimId,  setReportSimId]  = useState<number | null>(null)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sortCol,      setSortCol]      = useState<SortCol>('date')
+  const [sortDir,      setSortDir]      = useState<SortDir>('desc')
 
   const search = useDebounce(searchRaw, 300)
 
@@ -45,15 +63,78 @@ export default function SimulationsPage() {
     [activities],
   )
 
+  function toggleSort(col: SortCol) {
+    if (sortCol === col) {
+      setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir(col === 'date' ? 'desc' : 'asc')
+    }
+    setPage(0)
+    setExpandedId(null)
+  }
+
+  function handleStatusFilter(s: StatusFilter) {
+    setStatusFilter(s)
+    setPage(0)
+    setExpandedId(null)
+  }
+
+  function handleSearch(val: string) {
+    setSearchRaw(val)
+    setPage(0)
+    setExpandedId(null)
+  }
+
+  const statusCounts = useMemo(() => {
+    let pass = 0, fail = 0, incomplete = 0
+    for (const s of sims) {
+      const st = simStatus(s.Calificacion, s.Diagnostico_Final)
+      if (st === 'pass') pass++
+      else if (st === 'fail') fail++
+      else incomplete++
+    }
+    return { pass, fail, incomplete, all: sims.length }
+  }, [sims])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
-    if (!q) return sims
-    return sims.filter((s) =>
-      (s.Usuario_Nombre ?? '').toLowerCase().includes(q) ||
-      (actMap.get(s.ID_Caso_de_Uso)?.Caso_de_Uso ?? '').toLowerCase().includes(q) ||
-      s.Fecha_y_Hora.includes(q),
-    )
-  }, [sims, search, actMap])
+    let rows = sims
+
+    if (statusFilter !== 'all') {
+      rows = rows.filter((s) => simStatus(s.Calificacion, s.Diagnostico_Final) === statusFilter)
+    }
+
+    if (q) {
+      rows = rows.filter((s) =>
+        (s.Usuario_Nombre ?? '').toLowerCase().includes(q) ||
+        (actMap.get(s.ID_Caso_de_Uso)?.Caso_de_Uso ?? '').toLowerCase().includes(q) ||
+        s.Fecha_y_Hora.includes(q),
+      )
+    }
+
+    const statusRank = { pass: 0, fail: 1, incomplete: 2 } as const
+    return [...rows].sort((a, b) => {
+      let cmp = 0
+      if (sortCol === 'advisor') {
+        cmp = (a.Usuario_Nombre ?? '').localeCompare(b.Usuario_Nombre ?? '')
+      } else if (sortCol === 'activity') {
+        const na = actMap.get(a.ID_Caso_de_Uso)?.Caso_de_Uso ?? ''
+        const nb = actMap.get(b.ID_Caso_de_Uso)?.Caso_de_Uso ?? ''
+        cmp = na.localeCompare(nb)
+      } else if (sortCol === 'date') {
+        cmp = a.Fecha_y_Hora.localeCompare(b.Fecha_y_Hora)
+      } else if (sortCol === 'score') {
+        const sa = a.Calificacion ?? -1
+        const sb = b.Calificacion ?? -1
+        cmp = sa - sb
+      } else if (sortCol === 'status') {
+        cmp = statusRank[simStatus(a.Calificacion, a.Diagnostico_Final)] -
+              statusRank[simStatus(b.Calificacion, b.Diagnostico_Final)]
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [sims, search, actMap, statusFilter, sortCol, sortDir])
 
   const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const displayPage = Math.min(page, totalPages - 1)
@@ -81,13 +162,14 @@ export default function SimulationsPage() {
     )
   }
 
-  function handleSearch(val: string) {
-    setSearchRaw(val)
-    setPage(0)
-    setExpandedId(null)
-  }
-
   const es = language === 'es'
+
+  const STATUS_TABS: { key: StatusFilter; labelKey: TKey; count: number; activeClass: string }[] = [
+    { key: 'all',        labelKey: 'sim_filter_all',        count: statusCounts.all,        activeClass: 'text-slate-200 border-slate-400 bg-slate-400/10' },
+    { key: 'pass',       labelKey: 'sim_filter_pass',       count: statusCounts.pass,       activeClass: 'text-success border-success bg-success/10' },
+    { key: 'fail',       labelKey: 'sim_filter_fail',       count: statusCounts.fail,       activeClass: 'text-danger border-danger bg-danger/10' },
+    { key: 'incomplete', labelKey: 'sim_filter_incomplete', count: statusCounts.incomplete, activeClass: 'text-slate-400 border-slate-500 bg-slate-500/10' },
+  ]
 
   return (
     <div className="space-y-5">
@@ -96,6 +178,7 @@ export default function SimulationsPage() {
         <p className="text-slate-500 text-sm mt-0.5">{t('page_sims_subtitle')}</p>
       </div>
 
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[180px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
@@ -131,6 +214,7 @@ export default function SimulationsPage() {
         </span>
       </div>
 
+      {/* Criteria panel */}
       {showCriteria && (
         <div className="card p-4 sm:p-5 border border-accent/20">
           <h3 className="text-sm font-semibold text-slate-200 mb-3">{t('criteria_title')}</h3>
@@ -150,18 +234,58 @@ export default function SimulationsPage() {
         </div>
       )}
 
+      {/* Status filter tabs */}
+      <div className="flex flex-wrap gap-2">
+        {STATUS_TABS.map(({ key, labelKey, count, activeClass }) => (
+          <button
+            key={key}
+            onClick={() => handleStatusFilter(key)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all',
+              statusFilter === key
+                ? activeClass
+                : 'text-slate-500 border-line/40 hover:text-slate-300 hover:border-line',
+            )}
+          >
+            {key === 'all'        && <ChevronsUpDown className="w-3 h-3" />}
+            {key === 'pass'       && <CheckCircle2   className="w-3 h-3" />}
+            {key === 'fail'       && <XCircle        className="w-3 h-3" />}
+            {key === 'incomplete' && <MinusCircle    className="w-3 h-3" />}
+            {t(labelKey)}
+            <span className={cn(
+              'ml-0.5 tabular-nums text-[10px] rounded-full px-1.5 py-0.5',
+              statusFilter === key ? 'bg-current/10 opacity-80' : 'bg-surface text-slate-600',
+            )}>
+              {count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-line/40">
-                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{t('col_advisor')}</th>
-                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{t('col_activity')}</th>
-                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{t('col_date')}</span>
-                </th>
-                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{t('col_score')}</th>
-                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{t('col_status')}</th>
+              <tr className="border-b border-line/40 bg-surface/30">
+                {(
+                  [
+                    { col: 'advisor'  as SortCol, labelKey: 'col_advisor'  as TKey, icon: null },
+                    { col: 'activity' as SortCol, labelKey: 'col_activity' as TKey, icon: null },
+                    { col: 'date'     as SortCol, labelKey: 'col_date'     as TKey, icon: <Calendar className="w-3 h-3 inline-block mr-0.5" /> },
+                    { col: 'score'    as SortCol, labelKey: 'col_score'    as TKey, icon: null },
+                    { col: 'status'   as SortCol, labelKey: 'col_status'   as TKey, icon: null },
+                  ]
+                ).map(({ col, labelKey, icon }) => (
+                  <th
+                    key={col}
+                    onClick={() => toggleSort(col)}
+                    className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider cursor-pointer select-none hover:text-slate-300 transition-colors"
+                  >
+                    {icon}{t(labelKey)}
+                    <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
+                  </th>
+                ))}
                 <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{t('col_details')}</th>
               </tr>
             </thead>
@@ -169,6 +293,7 @@ export default function SimulationsPage() {
               {paginated.map((s) => {
                 const expanded = expandedId === s.ID_Sim
                 const activity = actMap.get(s.ID_Caso_de_Uso)
+                const st = simStatus(s.Calificacion, s.Diagnostico_Final)
                 return (
                   <Fragment key={s.ID_Sim}>
                     <tr
@@ -181,20 +306,20 @@ export default function SimulationsPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{s.Fecha_y_Hora.slice(0, 10)}</td>
                       <td className="px-4 py-3">
-                        <span className={cn('font-semibold',
-                          s.Calificacion === null || s.Calificacion === undefined
-                            ? 'text-slate-500'
-                            : Number(s.Calificacion) >= PASS_THRESHOLD ? 'text-success' : 'text-danger'
+                        <span className={cn('font-semibold tabular-nums',
+                          st === 'incomplete' ? 'text-slate-500'
+                          : st === 'pass'     ? 'text-success'
+                          : 'text-danger'
                         )}>
                           {s.Calificacion !== null && s.Calificacion !== undefined ? `${s.Calificacion}%` : '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {s.Calificacion === null || s.Calificacion === undefined ? (
+                        {st === 'incomplete' ? (
                           <span className="badge bg-slate-500/10 text-slate-500">
                             <MinusCircle className="w-3 h-3" /> {t('status_incomplete')}
                           </span>
-                        ) : s.Diagnostico_Final?.toLowerCase() === 'si' ? (
+                        ) : st === 'pass' ? (
                           <span className="badge bg-success/10 text-success">
                             <CheckCircle2 className="w-3 h-3" /> {t('status_pass')}
                           </span>
@@ -205,7 +330,9 @@ export default function SimulationsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        {expanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                        {expanded
+                          ? <ChevronUp className="w-4 h-4 text-slate-500" />
+                          : <ChevronDown className="w-4 h-4 text-slate-500" />}
                       </td>
                     </tr>
 
@@ -263,6 +390,7 @@ export default function SimulationsPage() {
         )}
       </div>
 
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>
