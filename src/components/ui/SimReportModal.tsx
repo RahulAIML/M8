@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ExternalLink, Loader2, FileText, CheckCircle2, XCircle, Stethoscope, User, ClipboardList, Download } from 'lucide-react'
+import { X, ExternalLink, FileText, CheckCircle2, XCircle, Stethoscope, User, ClipboardList, Download } from 'lucide-react'
 import { useSimReport } from '../../api/queries'
 import { useTranslation } from '../../lib/i18n'
 import type { Language } from '../../store'
@@ -12,8 +12,6 @@ interface Props {
   language: Language
   onClose: () => void
 }
-
-const REPORT_BASE = 'https://rolplay.app/index.php?uc='
 
 // ─── sub-components ──────────────────────────────────────────────────────────
 
@@ -120,10 +118,6 @@ function verdictColor(a: string): string | null {
 export function SimReportModal({ simId, language, onClose }: Props) {
   const t   = useTranslation(language)
   const es  = language === 'es'
-  const url = `${REPORT_BASE}${simId}`
-
-  const [tab, setTab]         = useState<'breakdown' | 'platform'>('breakdown')
-  const [iframeLoading, setIframeLoading] = useState(true)
 
   const { data: report, isLoading, isError } = useSimReport(simId)
 
@@ -137,13 +131,8 @@ export function SimReportModal({ simId, language, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // Reset iframe loading flag when switching to platform tab
-  useEffect(() => {
-    if (tab === 'platform') setIframeLoading(true)
-  }, [tab])
-
   function handleDownload() {
-    if (tab === 'platform' || !report) { window.open(url, '_blank'); return }
+    if (!report) return
     const scoreColor = score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626'
     const rondasHtml = rondas.map((r) => `
       <div class="ronda">
@@ -152,7 +141,7 @@ export function SimReportModal({ simId, language, onClose }: Props) {
           <span class="pts">${r.puntos ?? '–'} / ${r.max_puntos} pt</span>
         </div>
         ${r.pregunta ? `<div class="box doc"><b>${es ? 'Médico' : 'Doctor'}:</b> ${r.pregunta}</div>` : ''}
-        ${r.respuesta_rep ? `<div class="box rep"><b>${es ? 'Asesor' : 'Sales Rep'}:</b> ${r.respuesta_rep}</div>` : '<div class="box rep"><em style="color:#999">${es ? "Sin transcripción" : "No transcription"}</em></div>'}
+        ${r.respuesta_rep ? `<div class="box rep"><b>${es ? 'Asesor' : 'Sales Rep'}:</b> ${r.respuesta_rep}</div>` : `<div class="box rep"><em style="color:#999">${es ? 'Sin transcripción' : 'No transcription'}</em></div>`}
         ${r.criterio ? `<div class="field"><b>${es ? 'Criterio' : 'Criteria'}:</b> ${r.criterio}</div>` : ''}
         ${r.respuesta_modelo ? `<div class="field"><b>${es ? 'Respuesta modelo' : 'Model answer'}:</b> ${r.respuesta_modelo}</div>` : ''}
         ${r.analisis ? `<div class="field"><b>${es ? 'Análisis' : 'Analysis'}:</b> ${r.analisis}</div>` : ''}
@@ -225,124 +214,78 @@ export function SimReportModal({ simId, language, onClose }: Props) {
                 )}
               </div>
             </div>
+
+            {/* Download — only active once report is loaded */}
             <button
               onClick={handleDownload}
+              disabled={!report}
               title={t('report_download')}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />
             </button>
+
+            {/* Open in RolPlay platform — external link, requires platform login */}
+            <a
+              href={`https://rolplay.app/simulaciones`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={es ? 'Ver en RolPlay (requiere sesión)' : 'View on RolPlay (requires login)'}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+
             <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0">
               <X className="w-4 h-4" />
             </button>
           </div>
-
-          {/* Tabs */}
-          <div className="flex gap-1 mt-3">
-            <button
-              onClick={() => setTab('breakdown')}
-              className={cn(
-                'text-xs px-3 py-1.5 rounded-lg border transition-colors',
-                tab === 'breakdown'
-                  ? 'bg-accent/10 border-accent/40 text-accent'
-                  : 'border-line/40 text-slate-500 hover:text-slate-300 hover:border-line',
-              )}
-            >
-              {es ? 'Desglose' : 'Breakdown'}
-            </button>
-            <button
-              onClick={() => setTab('platform')}
-              className={cn(
-                'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors',
-                tab === 'platform'
-                  ? 'bg-accent/10 border-accent/40 text-accent'
-                  : 'border-line/40 text-slate-500 hover:text-slate-300 hover:border-line',
-              )}
-            >
-              {es ? 'Reporte oficial' : 'Official report'}
-            </button>
-            {tab === 'platform' && (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto flex items-center gap-1 text-xs text-slate-600 hover:text-slate-300 transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-                {es ? 'Nueva pestaña' : 'New tab'}
-              </a>
-            )}
-          </div>
         </div>
 
         {/* ── Body ── */}
-        <div className="flex-1 min-h-0 relative">
-
-          {/* Breakdown tab */}
-          {tab === 'breakdown' && (
-            <div className="absolute inset-0 overflow-y-auto px-4 sm:px-5 py-4 space-y-3">
-              {isLoading && Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-52 skeleton rounded-xl" />
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 space-y-3">
+          {isLoading && Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-52 skeleton rounded-xl" />
+          ))}
+          {isError && <p className="text-sm text-danger">{t('report_error')}</p>}
+          {report && (
+            <>
+              {rondas.map((ronda) => (
+                <RondaCard key={ronda.n} ronda={ronda} es={es} />
               ))}
-              {isError && <p className="text-sm text-danger">{t('report_error')}</p>}
-              {report && (
-                <>
-                  {rondas.map((ronda) => (
-                    <RondaCard key={ronda.n} ronda={ronda} es={es} />
-                  ))}
-                  {report.Secciones?.length > 0 && (
-                    <div className="border border-line/30 rounded-xl overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-line/20">
-                        <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                          {es ? 'Evaluación Final' : 'Final Assessment'}
-                        </span>
-                      </div>
-                      <div className="p-4 space-y-4">
-                        {report.Secciones.map((sec, i) => {
-                          const vc = verdictColor(sec.a)
-                          return (
-                            <div key={i}>
-                              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">{sec.q}</p>
-                              {vc ? (
-                                <p className={`text-base font-bold ${vc}`}>{sec.a}</p>
-                              ) : (
-                                <div className="text-xs text-slate-400 leading-relaxed space-y-1">
-                                  {sec.a.split('\n').map((line, j) =>
-                                    line.trim() ? <p key={j}>{sec.a.includes('\n') ? '• ' : ''}{line}</p> : null,
-                                  )}
-                                </div>
+              {report.Secciones?.length > 0 && (
+                <div className="border border-line/30 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-line/20">
+                    <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      {es ? 'Evaluación Final' : 'Final Assessment'}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    {report.Secciones.map((sec, i) => {
+                      const vc = verdictColor(sec.a)
+                      return (
+                        <div key={i}>
+                          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">{sec.q}</p>
+                          {vc ? (
+                            <p className={`text-base font-bold ${vc}`}>{sec.a}</p>
+                          ) : (
+                            <div className="text-xs text-slate-400 leading-relaxed space-y-1">
+                              {sec.a.split('\n').map((line, j) =>
+                                line.trim() ? <p key={j}>{sec.a.includes('\n') ? '• ' : ''}{line}</p> : null,
                               )}
                             </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  {rondas.length === 0 && !report.Secciones?.length && (
-                    <p className="text-sm text-slate-500 text-center py-8">{t('no_data')}</p>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Platform report iframe tab */}
-          {tab === 'platform' && (
-            <div className="absolute inset-0">
-              {iframeLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card z-10">
-                  <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
-                  <p className="text-xs text-slate-600">{es ? 'Cargando reporte...' : 'Loading report...'}</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
-              <iframe
-                src={url}
-                className="w-full h-full border-0 rounded-b-2xl"
-                onLoad={() => setIframeLoading(false)}
-                title={`${t('report_title')} ${simId}`}
-              />
-            </div>
+              {rondas.length === 0 && !report.Secciones?.length && (
+                <p className="text-sm text-slate-500 text-center py-8">{t('no_data')}</p>
+              )}
+            </>
           )}
         </div>
       </div>
