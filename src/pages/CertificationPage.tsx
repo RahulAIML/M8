@@ -16,7 +16,7 @@ export default function CertificationPage() {
   const exerciseStats = useMemo(() => M8_EXERCISES.map((ex) => {
     const exSims    = sims.filter((s) => s.ID_Caso_de_Uso === ex.saexId)
     const passCount = exSims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
-    const scores    = exSims.map((s) => s.Calificacion).filter((n): n is number => n !== null && n !== undefined && Number.isFinite(n))
+    const scores    = exSims.map((s) => s.Calificacion != null ? Number(s.Calificacion) : null).filter((n): n is number => n !== null && Number.isFinite(n))
     return {
       ...ex,
       sessions:       exSims.length,
@@ -36,7 +36,7 @@ export default function CertificationPage() {
       if (!map.has(em)) map.set(em, { name: s.Usuario_Nombre ?? em, scores: new Map() })
       const entry = map.get(em)!
       if (s.Usuario_Nombre) entry.name = s.Usuario_Nombre
-      entry.scores.set(s.ID_Caso_de_Uso, Math.max(entry.scores.get(s.ID_Caso_de_Uso) ?? 0, s.Calificacion ?? 0))
+      entry.scores.set(s.ID_Caso_de_Uso, Math.max(entry.scores.get(s.ID_Caso_de_Uso) ?? 0, Number(s.Calificacion ?? 0)))
     }
     return map
   }, [sims])
