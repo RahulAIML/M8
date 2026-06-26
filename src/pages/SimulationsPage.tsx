@@ -7,7 +7,7 @@ import { PASS_THRESHOLD } from '../lib/analytics'
 import { DateRangeFilter } from '../components/ui/DateRangeFilter'
 import { SimReportModal } from '../components/ui/SimReportModal'
 import {
-  Search, Calendar, CheckCircle2, XCircle, ChevronDown, ChevronUp,
+  Search, Calendar, CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp,
   ChevronLeft, ChevronRight, BadgeCheck, FileText, Target, ListChecks, Gauge, Lock, Download,
 } from 'lucide-react'
 import { cn } from '../lib/cn'
@@ -190,7 +190,11 @@ export default function SimulationsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {s.Diagnostico_Final?.toLowerCase() === 'si' ? (
+                        {s.Calificacion === null || s.Calificacion === undefined ? (
+                          <span className="badge bg-slate-500/10 text-slate-500">
+                            <MinusCircle className="w-3 h-3" /> {t('status_incomplete')}
+                          </span>
+                        ) : s.Diagnostico_Final?.toLowerCase() === 'si' ? (
                           <span className="badge bg-success/10 text-success">
                             <CheckCircle2 className="w-3 h-3" /> {t('status_pass')}
                           </span>
