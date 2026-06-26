@@ -166,3 +166,13 @@ export interface ObjectionsResponse {
   data: ObjectionStat[]
   total_records: number
 }
+
+// ─────────────────────────────────────────────
+// Conversation depth analytics
+// ─────────────────────────────────────────────
+export interface SessionDepthRow {
+  sim_id: number
+  sim_name: string
+  session_id: number
+  turn_count: number
+}

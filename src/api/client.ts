@@ -4,6 +4,7 @@ import type {
   LinesResponse,
   MembersResponse,
   ObjectionsResponse,
+  SessionDepthRow,
   Simulation,
   SimReport,
 } from './types'
@@ -258,6 +259,32 @@ export async function fetchAdmins(signal?: AbortSignal): Promise<AdminsResponse>
 // M8 has no line/tag structure
 export async function fetchLines(_signal?: AbortSignal): Promise<LinesResponse> {
   return { client: 'm8', count: 0, data: [] }
+}
+
+/** Per-session turn counts — used to compute completion funnel + depth stats */
+export async function fetchConversationStats(
+  from?: string | null,
+  to?: string | null,
+  signal?: AbortSignal,
+): Promise<SessionDepthRow[]> {
+  const { from: effFrom, to: effTo } = resolveEffectiveDates(from ?? null, to ?? null)
+  return remoteSQL<SessionDepthRow>(
+    `SELECT
+       us.simulator_id        AS sim_id,
+       rs.name                AS sim_name,
+       usd.session_id         AS session_id,
+       COUNT(*)               AS turn_count
+     FROM r_user_session_details usd
+     JOIN r_user_session us ON us.ID = usd.session_id
+     JOIN r_user u           ON u.ID  = us.user_id
+     JOIN r_simulator rs     ON rs.ID = us.simulator_id
+     WHERE us.simulator_id IN (${IDS_SQL})
+       AND u.client_id = ${M8_CLIENT_ID}
+       AND us.date_created >= '${effFrom}'
+       AND us.date_created < DATE_ADD('${effTo}', INTERVAL 1 DAY)
+     GROUP BY us.simulator_id, rs.name, usd.session_id`,
+    signal,
+  )
 }
 
 // Objection tracking not yet available for M8
