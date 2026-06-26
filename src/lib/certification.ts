@@ -9,7 +9,7 @@ export interface M8Exercise {
   link: string
 }
 
-export const CERT_SCORE_BAR = 80
+export const CERT_SCORE_BAR = 70
 export const CERT_WINDOW = { from: '2026-06-01', to: '2026-12-31' } as const
 
 const L = 'https://rolplay.app'
