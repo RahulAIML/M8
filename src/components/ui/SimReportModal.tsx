@@ -228,10 +228,10 @@ export function SimReportModal({ simId, language, onClose }: Props) {
             {/* Open in RolPlay platform — external link, requires platform login */}
             {report ? (
               <a
-                href={`https://rolplay.app/index.php?uc=${report.ID_Caso_de_Uso}&saex=${report.ID_Sim}`}
+                href={`https://rolplay.app/summary.php?id=${report.ID_Sim}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title={es ? 'Ver sesión en RolPlay (requiere sesión)' : 'View session on RolPlay (requires login)'}
+                title={es ? 'Ver reporte en RolPlay (requiere sesión)' : 'View report on RolPlay (requires login)'}
                 className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0"
               >
                 <ExternalLink className="w-4 h-4" />
