@@ -16,11 +16,11 @@ export default function CertificationPage() {
   const exerciseStats = useMemo(() => M8_EXERCISES.map((ex) => {
     const exSims    = sims.filter((s) => s.ID_Caso_de_Uso === ex.saexId)
     const passCount = exSims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
-    const scores    = exSims.map((s) => s.Calificacion).filter((n) => Number.isFinite(n))
+    const scores    = exSims.map((s) => s.Calificacion).filter((n): n is number => n !== null && n !== undefined && Number.isFinite(n))
     return {
       ...ex,
       sessions:       exSims.length,
-      avgScore:       scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+      avgScore:       scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
       passRate:       exSims.length ? Math.round((passCount / exSims.length) * 100) : 0,
       passCount,
       uniqueAdvisors: new Set(exSims.map((s) => s.Usuario).filter(Boolean)).size,
@@ -36,7 +36,7 @@ export default function CertificationPage() {
       if (!map.has(em)) map.set(em, { name: s.Usuario_Nombre ?? em, scores: new Map() })
       const entry = map.get(em)!
       if (s.Usuario_Nombre) entry.name = s.Usuario_Nombre
-      entry.scores.set(s.ID_Caso_de_Uso, Math.max(entry.scores.get(s.ID_Caso_de_Uso) ?? 0, s.Calificacion))
+      entry.scores.set(s.ID_Caso_de_Uso, Math.max(entry.scores.get(s.ID_Caso_de_Uso) ?? 0, s.Calificacion ?? 0))
     }
     return map
   }, [sims])
@@ -121,7 +121,7 @@ export default function CertificationPage() {
                 <p className="text-[10px] text-slate-500">sesiones</p>
               </div>
               <div>
-                <p className="text-base font-bold text-slate-100 tabular-nums">{ex.sessions ? `${ex.avgScore}%` : '—'}</p>
+                <p className="text-base font-bold text-slate-100 tabular-nums">{ex.sessions && ex.avgScore !== null ? `${ex.avgScore}%` : '—'}</p>
                 <p className="text-[10px] text-slate-500">promedio</p>
               </div>
               <div>

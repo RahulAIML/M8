@@ -181,8 +181,8 @@ export default function SimulationsPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{s.Fecha_y_Hora.slice(0, 10)}</td>
                       <td className="px-4 py-3">
-                        <span className={cn('font-semibold', s.Calificacion >= PASS_THRESHOLD ? 'text-success' : 'text-danger')}>
-                          {s.Calificacion}%
+                        <span className={cn('font-semibold', (s.Calificacion ?? 0) >= PASS_THRESHOLD ? 'text-success' : 'text-danger')}>
+                          {s.Calificacion !== null && s.Calificacion !== undefined ? `${s.Calificacion}%` : '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3">

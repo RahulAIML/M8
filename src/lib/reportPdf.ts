@@ -38,7 +38,7 @@ export async function downloadReportPDF(r: SimReport): Promise<void> {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9.5)
   doc.setTextColor(190, 202, 226)
-  const meta = [r.Usuario_Nombre, (r.Fecha_y_Hora ?? '').substring(0, 16), `${r.Calificacion}%`]
+  const meta = [r.Usuario_Nombre, (r.Fecha_y_Hora ?? '').substring(0, 16), r.Calificacion !== null && r.Calificacion !== undefined ? `${r.Calificacion}%` : '']
     .filter(Boolean).join('   ·   ')
   doc.text(meta, M, 42 + titleLines.length * 18 + 6)
 

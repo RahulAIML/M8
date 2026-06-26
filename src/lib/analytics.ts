@@ -53,9 +53,12 @@ function isApplicable(v: unknown): v is number {
 
 const INTERACTION_KEYS = ['Puntos_1', 'Puntos_2', 'Puntos_3', 'Puntos_4', 'Puntos_5'] as const
 
-// Calificacion is a 0-100 percentage; guard against null/non-numeric API values
+// Calificacion is a 0-100 percentage; null means unscored — exclude from average
 function avgScore(sims: Simulation[]): number {
-  const valid = sims.map((s) => Number(s.Calificacion)).filter((n) => Number.isFinite(n))
+  const valid = sims
+    .filter((s) => s.Calificacion !== null && s.Calificacion !== undefined)
+    .map((s) => Number(s.Calificacion))
+    .filter((n) => Number.isFinite(n))
   if (!valid.length) return 0
   return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length)
 }
@@ -97,9 +100,10 @@ export function computeQuickKPIs(sims: Simulation[]): QuickKPIs {
   const advisors  = new Set(sims.map((s) => s.Usuario_Nombre).filter(Boolean))
   let bestScore  = 0
   let worstScore = 0
-  if (sims.length) {
-    bestScore  = sims.reduce((m, s) => Math.max(m, s.Calificacion), -Infinity)
-    worstScore = sims.reduce((m, s) => Math.min(m, s.Calificacion),  Infinity)
+  const scored = sims.filter((s) => s.Calificacion !== null && s.Calificacion !== undefined)
+  if (scored.length) {
+    bestScore  = scored.reduce((m, s) => Math.max(m, s.Calificacion as number), -Infinity)
+    worstScore = scored.reduce((m, s) => Math.min(m, s.Calificacion as number),  Infinity)
     if (!Number.isFinite(bestScore))  bestScore  = 0
     if (!Number.isFinite(worstScore)) worstScore = 0
   }
@@ -146,9 +150,10 @@ export function computeKPIs(
   // Use Math.max/min with reduce to avoid stack overflow on large arrays
   let bestScore  = 0
   let worstScore = 0
-  if (sims.length) {
-    bestScore  = sims.reduce((m, s) => Math.max(m, s.Calificacion), -Infinity)
-    worstScore = sims.reduce((m, s) => Math.min(m, s.Calificacion),  Infinity)
+  const scored = sims.filter((s) => s.Calificacion !== null && s.Calificacion !== undefined)
+  if (scored.length) {
+    bestScore  = scored.reduce((m, s) => Math.max(m, s.Calificacion as number), -Infinity)
+    worstScore = scored.reduce((m, s) => Math.min(m, s.Calificacion as number),  Infinity)
     if (!Number.isFinite(bestScore))  bestScore  = 0
     if (!Number.isFinite(worstScore)) worstScore = 0
   }
@@ -190,7 +195,8 @@ export function computeScoreDistribution(sims: Simulation[]): ScoreBucket[] {
     { label: '81–100', min: 81, max: 100, count: 0 },
   ]
   sims.forEach((s) => {
-    const b = buckets.find((bk) => s.Calificacion >= bk.min && s.Calificacion <= bk.max)
+    if (s.Calificacion === null || s.Calificacion === undefined) return
+    const b = buckets.find((bk) => (s.Calificacion as number) >= bk.min && (s.Calificacion as number) <= bk.max)
     if (b) b.count++
   })
   return buckets
@@ -218,7 +224,7 @@ export function computeTrend(sims: Simulation[]): TrendPoint[] {
   const sorted = Object.entries(byDate)
     .map(([date, group]) => ({
       date,
-      avgScore: Math.round(avg(group.map((s) => s.Calificacion))),
+      avgScore: Math.round(avg(group.map((s) => s.Calificacion ?? 0))),
       count:    group.length,
       passRate: pct(
         group.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length,
@@ -327,7 +333,7 @@ export function computeUserStats(sims: Simulation[]): UserStat[] {
     .map(([name, group]) => {
       const passCount = group.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
       // Use reduce to avoid stack overflow on large groups
-      const bestScore = group.reduce((m, s) => Math.max(m, s.Calificacion), 0)
+      const bestScore = group.reduce((m, s) => Math.max(m, s.Calificacion ?? 0), 0)
       return {
         name,
         userId:    group[0].Usuario,
@@ -474,7 +480,7 @@ export function computeLineStats(
     const lineMembers = membersByLine.get(line.id) ?? []
     const lineSims    = simsByLine.get(line.id)    ?? []
     const passCount   = lineSims.filter((s) => s.Diagnostico_Final?.toLowerCase() === 'si').length
-    const scores      = lineSims.map((s) => Number(s.Calificacion)).filter((n) => Number.isFinite(n))
+    const scores      = lineSims.filter((s) => s.Calificacion !== null && s.Calificacion !== undefined).map((s) => Number(s.Calificacion)).filter((n) => Number.isFinite(n))
     return {
       id:          line.id,
       name:        line.name,
@@ -503,7 +509,7 @@ export function buildAIContext(
   const topUsers = userStats.slice(0, 5).map((u) => `${u.name} (${u.avgScore}%)`).join(', ')
   const actList  = actStats.map((a) => `${a.name}: ${a.count} sims, avg ${a.avgScore}%`).join('; ')
   // Pass only last 5 sims — avoid serializing the full dataset into the AI context
-  const recent   = sims.slice(-5).map((s) => `${s.Usuario_Nombre}: ${s.Calificacion}% (${s.Diagnostico_Final})`).join(', ')
+  const recent   = sims.slice(-5).map((s) => `${s.Usuario_Nombre}: ${s.Calificacion !== null && s.Calificacion !== undefined ? `${s.Calificacion}%` : '—'} (${s.Diagnostico_Final})`).join(', ')
   const actNames = activities.slice(0, 20).map((a) => a.Caso_de_Uso).join(', ')
   const worst5   = objections.slice(0, 5).map((o, i) => `  ${i + 1}. "${o.objection_text}" — asked ${o.count}x, ${o.pass_rate}% success`).join('\n')
   const best5    = [...objections].reverse().slice(0, 5).map((o, i) => `  ${i + 1}. "${o.objection_text}" — asked ${o.count}x, ${o.pass_rate}% success`).join('\n')

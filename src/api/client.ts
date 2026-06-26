@@ -78,10 +78,10 @@ export async function fetchSimulations(
        rs.name                            AS Caso_de_Uso,
        u.email                            AS Usuario,
        u.name                             AS Usuario_Nombre,
-       ROUND(us.score * 100)              AS Calificacion,
+       CASE WHEN us.score IS NULL THEN NULL WHEN us.score > 100 THEN LEAST(ROUND(us.score / 100.0), 100) WHEN us.score <= 1 THEN ROUND(us.score * 100) ELSE ROUND(us.score) END AS Calificacion,
        IF(us.passed_flag = 1, 'si', 'no') AS Diagnostico_Final,
        us.date_created                    AS Fecha_y_Hora,
-       ROUND(us.score * 100)              AS Puntos_Totales,
+       CASE WHEN us.score IS NULL THEN NULL WHEN us.score > 100 THEN LEAST(ROUND(us.score / 100.0), 100) WHEN us.score <= 1 THEN ROUND(us.score * 100) ELSE ROUND(us.score) END AS Puntos_Totales,
        NULL AS Pregunta_1, NULL AS Pregunta_2, NULL AS Pregunta_3,
        NULL AS Pregunta_4, NULL AS Pregunta_5, NULL AS Pregunta_6,
        NULL AS Puntos_1,   NULL AS Puntos_2,   NULL AS Puntos_3,
@@ -108,7 +108,7 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
   const id = Math.trunc(simId) // ensure integer
   const [session] = await remoteSQL<{
     ID_Sim: number; ID_Caso_de_Uso: number; Usuario: string | null; Usuario_Nombre: string | null
-    Fecha_y_Hora: string | null; Calificacion: number; Producto: string
+    Fecha_y_Hora: string | null; Calificacion: number | null; Producto: string
   }>(
     `SELECT
        us.ID               AS ID_Sim,
@@ -116,7 +116,7 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
        u.email             AS Usuario,
        u.name              AS Usuario_Nombre,
        us.date_created     AS Fecha_y_Hora,
-       ROUND(us.score * 100) AS Calificacion,
+       CASE WHEN us.score IS NULL THEN NULL WHEN us.score > 100 THEN LEAST(ROUND(us.score / 100.0), 100) WHEN us.score <= 1 THEN ROUND(us.score * 100) ELSE ROUND(us.score) END AS Calificacion,
        rs.name             AS Producto
      FROM r_user_session us
      JOIN r_user      u  ON u.ID  = us.user_id

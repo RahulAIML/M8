@@ -22,7 +22,7 @@ export interface ActivitiesResponse {
 // FACT_ROLPLAY_SIM
 // ─────────────────────────────────────────────
 export interface Simulation {
-  Calificacion: number
+  Calificacion: number | null
   Diagnostico_Final: string | null  // lowercase 'si' / 'no' from API
   Fecha_y_Hora: string
   ID_Caso_de_Uso: number
@@ -83,7 +83,7 @@ export interface SimReport {
   Usuario: string | null
   Usuario_Nombre: string | null
   Fecha_y_Hora: string | null
-  Calificacion: number
+  Calificacion: number | null
   Producto: string          // simulator/product name from usecases table
   Titulo: string
   Rondas: SimRonda[]        // parsed interaction rounds 1–5
