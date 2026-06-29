@@ -170,6 +170,7 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
          u.name              AS Usuario_Nombre,
          us.date_created     AS Fecha_y_Hora,
          rs.name             AS Producto,
+         us.closing_analysis AS closing_analysis,
          CASE
            WHEN us.score > 0 THEN CAST(us.score AS DECIMAL(10,2))
            WHEN us.raw_closing_data IS NOT NULL AND us.raw_closing_data != ''
