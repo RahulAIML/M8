@@ -163,56 +163,135 @@ export function SimReportModal({ simId, language, onClose }: Props) {
 
   function handleDownload() {
     if (!report) return
-    const scoreColor = score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626'
 
-    const rondasHtml = rondas.map((r) => `
+    const scoreClass = score >= 70 ? 'pass' : score >= 40 ? 'warn' : 'fail'
+    const verdict    = score >= 70
+      ? (es ? 'Aprobado' : 'Passed')
+      : score > 0
+        ? (es ? 'Reprobado' : 'Failed')
+        : (es ? 'Incompleto' : 'Incomplete')
+    const dateStr = (report.Fecha_y_Hora ?? '').substring(0, 16).replace('T', ' ')
+
+    const rondasHtml = rondas.map((r) => {
+      const ptsClass = r.puntos === null ? '' : r.puntos >= r.max_puntos ? 'pts-pass' : 'pts-fail'
+      return `
       <div class="ronda">
         <div class="ronda-hdr">
-          ${es ? `Interacción ${r.n}` : `Interaction ${r.n}`}
-          <span class="pts">${r.puntos ?? '–'} / ${r.max_puntos} pt</span>
+          <span>${es ? `Interacción ${r.n}` : `Interaction ${r.n}`}</span>
+          <span class="pts ${ptsClass}">${r.puntos !== null ? `${r.puntos} / ${r.max_puntos} pt` : '—'}</span>
         </div>
-        ${r.pregunta ? `<div class="box doc"><b>${es ? 'Médico' : 'Doctor'}:</b> ${r.pregunta}</div>` : ''}
-        ${r.respuesta_rep ? `<div class="box rep"><b>${es ? 'Asesor' : 'Sales Rep'}:</b> ${r.respuesta_rep}</div>` : `<div class="box rep"><em style="color:#999">${es ? 'Sin transcripción' : 'No transcription'}</em></div>`}
-        ${r.criterio ? `<div class="field"><b>${es ? 'Criterio' : 'Criteria'}:</b> ${r.criterio}</div>` : ''}
-        ${r.respuesta_modelo ? `<div class="field"><b>${es ? 'Respuesta modelo' : 'Model answer'}:</b> ${r.respuesta_modelo}</div>` : ''}
-        ${r.analisis ? `<div class="field"><b>${es ? 'Análisis' : 'Analysis'}:</b> ${r.analisis}</div>` : ''}
-      </div>`).join('')
-
-    const closingSection = report.closing_analysis
-      ? `<div style="margin-bottom:32px">${report.closing_analysis}</div>
-         <h2 style="font-family:Arial,sans-serif;font-size:16px;color:#333;margin:0 0 16px;padding-top:8px;border-top:2px solid #e0e0e0">
-           ${es ? 'Detalle de Interacciones' : 'Interaction Detail'}
-         </h2>`
-      : `<div style="margin-bottom:16px">
-           <h1 style="font-family:Arial,sans-serif;font-size:18px;margin:0 0 4px">${product}</h1>
-           <div style="color:#666;font-size:12px;margin-bottom:20px">
-             ${report.Usuario_Nombre} &nbsp;·&nbsp; ${(report.Fecha_y_Hora ?? '').substring(0, 16)}
-             &nbsp;·&nbsp; <span style="font-weight:700;color:${scoreColor}">${score}%</span>
-           </div>
-         </div>`
+        ${r.pregunta ? `
+        <div class="box doc">
+          <div class="box-lbl">${es ? 'Médico' : 'Doctor'}</div>
+          ${r.pregunta}
+        </div>` : ''}
+        ${r.respuesta_rep ? `
+        <div class="box rep">
+          <div class="box-lbl">${es ? 'Asesor' : 'Sales Rep'}</div>
+          ${r.respuesta_rep}
+        </div>` : `
+        <div class="box no-resp"><em>${es ? 'Sin transcripción registrada' : 'No transcription recorded'}</em></div>`}
+        ${r.criterio || r.respuesta_modelo || r.analisis ? `
+        <div class="feedback">
+          ${r.criterio ? `<div class="field"><b>${es ? 'Criterio evaluado' : 'Criterion'}</b>${r.criterio}</div>` : ''}
+          ${r.respuesta_modelo ? `<div class="field"><b>${es ? 'Respuesta modelo' : 'Model answer'}</b>${r.respuesta_modelo}</div>` : ''}
+          ${r.analisis ? `<div class="field"><b>${es ? 'Análisis de respuesta' : 'Response analysis'}</b>${r.analisis}</div>` : ''}
+        </div>` : ''}
+      </div>`
+    }).join('')
 
     const win = window.open('', '_blank', 'width=960,height=800')
     if (!win) return
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <title>${product} — ${report.Usuario_Nombre}</title>
-      <style>
-        body{font-family:Arial,sans-serif;color:#111;margin:0;padding:24px;font-size:14px}
-        .ronda{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid}
-        .ronda-hdr{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;display:flex;justify-content:space-between;margin-bottom:10px}
-        .pts{color:#111}
-        .box{border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:13px;line-height:1.5}
-        .doc{background:#eff6ff;border:1px solid #bfdbfe}
-        .rep{background:#f0fdf4;border:1px solid #bbf7d0}
-        .field{font-size:12px;color:#444;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0}
-        .field b{display:block;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
-        @media print{body{padding:0}.rp-coach-report{box-shadow:none!important;border-radius:0!important}}
-      </style></head><body>
-      ${closingSection}
-      ${rondasHtml}
-    </body></html>`)
+    win.document.write(`<!DOCTYPE html><html lang="${language}"><head>
+<meta charset="UTF-8">
+<title>${product} — ${report.Usuario_Nombre ?? ''}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;background:#fff;font-size:13px;line-height:1.5}
+
+  /* ── Page header (always shown) ── */
+  .pdf-header{padding:24px 28px 18px;border-bottom:3px solid #1d4ed8;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:28px}
+  .pdf-brand{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:5px}
+  .pdf-product{font-size:17px;font-weight:700;color:#0f172a;line-height:1.25}
+  .pdf-meta{font-size:11px;color:#64748b;margin-top:5px}
+  .pdf-score{text-align:right;flex-shrink:0}
+  .pdf-score-num{font-size:36px;font-weight:900;line-height:1;letter-spacing:-.02em}
+  .pdf-verdict{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+  .pass{color:#16a34a} .warn{color:#d97706} .fail{color:#dc2626}
+  .pdf-link{font-size:9px;color:#3b82f6;margin-top:6px;word-break:break-all}
+
+  /* ── Section titles ── */
+  .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;padding:6px 0 8px;border-bottom:1px solid #e2e8f0;margin-bottom:16px}
+
+  /* ── Closing HTML — force print-safe colors ── */
+  .closing-wrap{margin-bottom:28px}
+  .closing-wrap *{
+    background-color:#fff!important;
+    color:#1e293b!important;
+    box-shadow:none!important;
+    text-shadow:none!important;
+    border-color:#e2e8f0!important;
+  }
+  .closing-wrap [class*="score"],[class*="rpt-score"]{color:#1d4ed8!important;font-weight:700}
+  .closing-wrap img{max-width:100%}
+
+  /* ── Interaction cards ── */
+  .ronda{border:1px solid #e2e8f0;border-radius:6px;padding:14px;margin-bottom:10px;break-inside:avoid}
+  .ronda-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;display:flex;justify-content:space-between;margin-bottom:10px}
+  .pts{font-weight:700;color:#1e293b}
+  .pts-pass{color:#16a34a} .pts-fail{color:#dc2626}
+  .box{border-radius:5px;padding:8px 12px;margin-bottom:6px;font-size:12.5px;line-height:1.55}
+  .box-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+  .doc{background:#eff6ff!important;border:1px solid #bfdbfe!important}
+  .doc .box-lbl{color:#1d4ed8}
+  .rep{background:#f0fdf4!important;border:1px solid #bbf7d0!important}
+  .rep .box-lbl{color:#15803d}
+  .no-resp{background:#fefce8!important;border:1px solid #fde68a!important;color:#854d0e!important;font-size:12px;padding:8px 12px;border-radius:5px;margin-bottom:6px}
+  .feedback{margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9}
+  .field{font-size:11.5px;color:#475569;margin-bottom:8px}
+  .field b{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;font-weight:700;margin-bottom:2px}
+
+  /* ── Print ── */
+  @media print{
+    body{padding:0}
+    .pdf-header{break-after:avoid}
+    .ronda{break-inside:avoid}
+    .closing-wrap{break-after:page}
+    a{color:#1d4ed8!important}
+  }
+</style>
+</head><body style="padding:0 28px 36px">
+
+  <div class="pdf-header">
+    <div>
+      <div class="pdf-brand">M8 Pharma &nbsp;·&nbsp; Rolplay</div>
+      <div class="pdf-product">${product}</div>
+      <div class="pdf-meta">
+        ${report.Usuario_Nombre ?? ''} &nbsp;·&nbsp; ${report.Usuario ?? ''}<br>
+        ${dateStr}
+      </div>
+      <div class="pdf-link">rolplay.app/summary.php?id=${report.ID_Sim}</div>
+    </div>
+    <div class="pdf-score">
+      <div class="pdf-score-num ${scoreClass}">${score > 0 ? `${score}%` : '—'}</div>
+      <div class="pdf-verdict ${scoreClass}">${verdict}</div>
+    </div>
+  </div>
+
+  ${report.closing_analysis ? `
+  <div class="closing-wrap">
+    <div class="section-title">${es ? 'Reporte de Cierre' : 'Closing Report'}</div>
+    ${report.closing_analysis}
+  </div>` : ''}
+
+  ${rondasHtml ? `
+  <div class="section-title">${es ? 'Detalle de Interacciones' : 'Interaction Detail'}</div>
+  ${rondasHtml}` : ''}
+
+</body></html>`)
     win.document.close()
     win.focus()
-    setTimeout(() => win.print(), 400)
+    setTimeout(() => win.print(), 500)
   }
 
   return createPortal(
@@ -272,7 +351,7 @@ export function SimReportModal({ simId, language, onClose }: Props) {
                 href={`https://rolplay.app/summary.php?id=${report.ID_Sim}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title={es ? 'Ver reporte en RolPlay (requiere sesión)' : 'View report on RolPlay (requires login)'}
+                title={es ? 'Ver reporte completo en RolPlay — inicia sesión como admin primero' : 'View full report on RolPlay — log in as admin first'}
                 className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.05] transition-colors shrink-0"
               >
                 <ExternalLink className="w-4 h-4" />
