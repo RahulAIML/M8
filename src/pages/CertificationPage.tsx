@@ -1,13 +1,16 @@
 import { useMemo } from 'react'
 import { useSimulations } from '../api/queries'
 import { useAppStore } from '../store'
+import { useTranslation } from '../lib/i18n'
 import { filterTestUsers } from '../lib/analytics'
 import { M8_EXERCISES, CERT_WINDOW, CERT_SCORE_BAR } from '../lib/certification'
 import { cn } from '../lib/cn'
 import { BadgeCheck, Award, ExternalLink } from 'lucide-react'
 
 export default function CertificationPage() {
-  useAppStore((s) => s.language)
+  const { language } = useAppStore()
+  const t = useTranslation(language)
+  const es = language === 'es'
 
   const simsQ = useSimulations(CERT_WINDOW.from, CERT_WINDOW.to)
   const sims  = useMemo(() => filterTestUsers(simsQ.data ?? []), [simsQ.data])
@@ -75,14 +78,14 @@ export default function CertificationPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-50 tracking-tight flex items-center gap-2">
             <BadgeCheck className="w-6 h-6 text-accent" />
-            Certificación M8 Pharma
+            {t('cert_title')}
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">Legalon · Abcito · Coach Combinado</p>
+          <p className="text-slate-500 text-sm mt-0.5">{t('cert_subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-400 bg-surface border border-slate-800 px-3 py-1.5 rounded-full">
-          <span className="tabular-nums font-semibold text-slate-200">{totalSessions}</span> sesiones ·
-          <span className="tabular-nums font-semibold text-success">{certified.length}</span> certificados ·
-          <span className="text-slate-500">≥{CERT_SCORE_BAR}% en {M8_EXERCISES.length} ejercicios</span>
+          <span className="tabular-nums font-semibold text-slate-200">{totalSessions}</span> {es ? 'sesiones' : 'sessions'} ·
+          <span className="tabular-nums font-semibold text-success">{certified.length}</span> {es ? 'certificados' : 'certified'} ·
+          <span className="text-slate-500">≥{CERT_SCORE_BAR}% {es ? `en ${M8_EXERCISES.length} ejercicios` : `across ${M8_EXERCISES.length} exercises`}</span>
         </div>
       </div>
 
@@ -110,7 +113,7 @@ export default function CertificationPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 text-slate-600 hover:text-accent transition-colors"
-                title="Abrir ejercicio"
+                title={t('cert_open_exercise')}
               >
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
@@ -119,15 +122,15 @@ export default function CertificationPage() {
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="text-base font-bold text-slate-100 tabular-nums">{ex.sessions}</p>
-                <p className="text-[10px] text-slate-500">sesiones</p>
+                <p className="text-[10px] text-slate-500">{es ? 'sesiones' : 'sessions'}</p>
               </div>
               <div>
                 <p className="text-base font-bold text-slate-100 tabular-nums">{ex.sessions && ex.avgScore !== null ? `${ex.avgScore}%` : '—'}</p>
-                <p className="text-[10px] text-slate-500">promedio</p>
+                <p className="text-[10px] text-slate-500">{es ? 'promedio' : 'average'}</p>
               </div>
               <div>
                 <p className="text-base font-bold text-slate-100 tabular-nums">{ex.uniqueAdvisors}</p>
-                <p className="text-[10px] text-slate-500">asesores</p>
+                <p className="text-[10px] text-slate-500">{es ? 'asesores' : 'advisors'}</p>
               </div>
             </div>
 
@@ -141,7 +144,7 @@ export default function CertificationPage() {
                   />
                 </div>
                 <p className="text-[10px] text-slate-600 -mt-1">
-                  {ex.passCount} aprobados · {ex.passRate}% tasa
+                  {ex.passCount} {es ? 'aprobados' : 'passed'} · {ex.passRate}% {es ? 'tasa' : 'rate'}
                 </p>
               </>
             )}
@@ -154,15 +157,15 @@ export default function CertificationPage() {
         <div className="flex items-center gap-2 mb-1">
           <Award className="w-4 h-4 text-success" />
           <h3 className="text-sm font-semibold text-slate-200">
-            Asesores Certificados
+            {t('cert_certified_title')}
           </h3>
           <span className="text-success font-bold tabular-nums text-sm">{certified.length}</span>
         </div>
         <p className="text-[11px] text-slate-600 mb-4">
-          Certificado = ≥{CERT_SCORE_BAR}% en cada uno de los {M8_EXERCISES.length} ejercicios durante el período.
+          {t('cert_certified_def')}
         </p>
         {certified.length === 0 ? (
-          <p className="text-sm text-slate-500">Aún no hay asesores certificados en el período.</p>
+          <p className="text-sm text-slate-500">{t('cert_certified_none')}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {certified.map((c) => (

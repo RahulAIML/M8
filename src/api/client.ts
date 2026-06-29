@@ -150,7 +150,7 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
   const id = Math.trunc(simId) // ensure integer
   const [session] = await remoteSQL<{
     ID_Sim: number; ID_Caso_de_Uso: number; Usuario: string | null; Usuario_Nombre: string | null
-    Fecha_y_Hora: string | null; Calificacion: number | null; Producto: string
+    Fecha_y_Hora: string | null; Calificacion: number | null; Producto: string; closing_analysis: string | null
   }>(
     `SELECT
        s.ID_Sim,
@@ -160,7 +160,8 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
        s.Fecha_y_Hora,
        CASE WHEN s.raw_score IS NULL THEN NULL
             ELSE LEAST(100, GREATEST(0, ROUND(s.raw_score))) END AS Calificacion,
-       s.Producto
+       s.Producto,
+       s.closing_analysis
      FROM (
        SELECT
          us.ID               AS ID_Sim,
@@ -169,6 +170,7 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
          u.name              AS Usuario_Nombre,
          us.date_created     AS Fecha_y_Hora,
          rs.name             AS Producto,
+         us.closing_analysis AS closing_analysis,
          CASE
            WHEN us.score > 0 THEN CAST(us.score AS DECIMAL(10,2))
            WHEN us.raw_closing_data IS NOT NULL AND us.raw_closing_data != ''
@@ -236,8 +238,9 @@ export async function fetchSimReport(simId: number, signal?: AbortSignal): Promi
     Calificacion:  session.Calificacion,
     Producto:      producto,
     Titulo:        session.Producto,
-    Rondas:        rondas,
-    Secciones:     [],
+    Rondas:          rondas,
+    Secciones:       [],
+    closing_analysis: session.closing_analysis ?? null,
   }
 }
 

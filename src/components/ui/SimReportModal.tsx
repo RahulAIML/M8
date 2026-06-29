@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ExternalLink, FileText, CheckCircle2, XCircle, Stethoscope, User, ClipboardList, Download } from 'lucide-react'
+import { X, ExternalLink, FileText, CheckCircle2, XCircle, Stethoscope, User, ClipboardList, Download, BarChart2 } from 'lucide-react'
 import { useSimReport } from '../../api/queries'
 import { useTranslation } from '../../lib/i18n'
 import type { Language } from '../../store'
@@ -113,6 +113,14 @@ function verdictColor(a: string): string | null {
   return null
 }
 
+// Wraps a closing_analysis HTML fragment into a full document for blob/iframe rendering
+function wrapClosingHtml(fragment: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>*{box-sizing:border-box}body{margin:0;padding:0;background:#f0f0f0}</style>
+</head><body>${fragment}</body></html>`
+}
+
 // ─── main modal ──────────────────────────────────────────────────────────────
 
 export function SimReportModal({ simId, language, onClose }: Props) {
@@ -125,6 +133,28 @@ export function SimReportModal({ simId, language, onClose }: Props) {
   const product = report?.Producto || report?.Titulo || t('report_title')
   const rondas  = report?.Rondas ?? []
 
+  // Blob URL for the closing_analysis iframe — created once per report, cleaned up on unmount
+  const [closingBlobUrl, setClosingBlobUrl] = useState<string | null>(null)
+  const [iframeHeight, setIframeHeight] = useState(500)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  useEffect(() => {
+    if (!report?.closing_analysis) { setClosingBlobUrl(null); return }
+    const html = wrapClosingHtml(report.closing_analysis)
+    const blob = new Blob([html], { type: 'text/html' })
+    const url  = URL.createObjectURL(blob)
+    setClosingBlobUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [report?.closing_analysis])
+
+  // Auto-resize iframe to its content height once loaded
+  function handleIframeLoad() {
+    try {
+      const doc = iframeRef.current?.contentDocument
+      if (doc) setIframeHeight(doc.documentElement.scrollHeight + 16)
+    } catch { /* cross-origin guard */ }
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -134,6 +164,7 @@ export function SimReportModal({ simId, language, onClose }: Props) {
   function handleDownload() {
     if (!report) return
     const scoreColor = score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626'
+
     const rondasHtml = rondas.map((r) => `
       <div class="ronda">
         <div class="ronda-hdr">
@@ -146,15 +177,26 @@ export function SimReportModal({ simId, language, onClose }: Props) {
         ${r.respuesta_modelo ? `<div class="field"><b>${es ? 'Respuesta modelo' : 'Model answer'}:</b> ${r.respuesta_modelo}</div>` : ''}
         ${r.analisis ? `<div class="field"><b>${es ? 'Análisis' : 'Analysis'}:</b> ${r.analisis}</div>` : ''}
       </div>`).join('')
-    const win = window.open('', '_blank', 'width=900,height=720')
+
+    const closingSection = report.closing_analysis
+      ? `<div style="margin-bottom:32px">${report.closing_analysis}</div>
+         <h2 style="font-family:Arial,sans-serif;font-size:16px;color:#333;margin:0 0 16px;padding-top:8px;border-top:2px solid #e0e0e0">
+           ${es ? 'Detalle de Interacciones' : 'Interaction Detail'}
+         </h2>`
+      : `<div style="margin-bottom:16px">
+           <h1 style="font-family:Arial,sans-serif;font-size:18px;margin:0 0 4px">${product}</h1>
+           <div style="color:#666;font-size:12px;margin-bottom:20px">
+             ${report.Usuario_Nombre} &nbsp;·&nbsp; ${(report.Fecha_y_Hora ?? '').substring(0, 16)}
+             &nbsp;·&nbsp; <span style="font-weight:700;color:${scoreColor}">${score}%</span>
+           </div>
+         </div>`
+
+    const win = window.open('', '_blank', 'width=960,height=800')
     if (!win) return
     win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
       <title>${product} — ${report.Usuario_Nombre}</title>
       <style>
         body{font-family:Arial,sans-serif;color:#111;margin:0;padding:24px;font-size:14px}
-        h1{font-size:18px;margin:0 0 4px}
-        .meta{color:#666;font-size:12px;margin-bottom:20px}
-        .score{font-weight:700;color:${scoreColor}}
         .ronda{border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:12px;page-break-inside:avoid}
         .ronda-hdr{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#888;display:flex;justify-content:space-between;margin-bottom:10px}
         .pts{color:#111}
@@ -163,15 +205,14 @@ export function SimReportModal({ simId, language, onClose }: Props) {
         .rep{background:#f0fdf4;border:1px solid #bbf7d0}
         .field{font-size:12px;color:#444;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0}
         .field b{display:block;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
-        @media print{body{padding:0}}
+        @media print{body{padding:0}.rp-coach-report{box-shadow:none!important;border-radius:0!important}}
       </style></head><body>
-      <h1>${product}</h1>
-      <div class="meta">${report.Usuario_Nombre} &nbsp;·&nbsp; ${(report.Fecha_y_Hora ?? '').substring(0, 16)} &nbsp;·&nbsp; <span class="score">${score}%</span></div>
+      ${closingSection}
       ${rondasHtml}
     </body></html>`)
     win.document.close()
     win.focus()
-    setTimeout(() => win.print(), 350)
+    setTimeout(() => win.print(), 400)
   }
 
   return createPortal(
@@ -249,46 +290,88 @@ export function SimReportModal({ simId, language, onClose }: Props) {
         </div>
 
         {/* ── Body ── */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-4 space-y-3">
-          {isLoading && Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-52 skeleton rounded-xl" />
-          ))}
-          {isError && <p className="text-sm text-danger">{t('report_error')}</p>}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {isLoading && (
+            <div className="px-4 sm:px-5 py-4 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-52 skeleton rounded-xl" />
+              ))}
+            </div>
+          )}
+          {isError && <p className="text-sm text-danger px-5 py-4">{t('report_error')}</p>}
+
           {report && (
             <>
-              {rondas.map((ronda) => (
-                <RondaCard key={ronda.n} ronda={ronda} es={es} />
-              ))}
-              {report.Secciones?.length > 0 && (
-                <div className="border border-line/30 rounded-xl overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-line/20">
-                    <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      {es ? 'Evaluación Final' : 'Final Assessment'}
+              {/* ── Closing Report (score summary, adoption level, evaluación, fortalezas, recomendaciones) ── */}
+              {closingBlobUrl && (
+                <div className="border-b border-line/30">
+                  <div className="flex items-center gap-2 px-5 py-2.5 bg-[#3A1C71]/20 border-b border-[#3A1C71]/30">
+                    <BarChart2 className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-purple-300">
+                      {es ? 'Reporte de Cierre' : 'Closing Report'}
                     </span>
                   </div>
-                  <div className="p-4 space-y-4">
-                    {report.Secciones.map((sec, i) => {
-                      const vc = verdictColor(sec.a)
-                      return (
-                        <div key={i}>
-                          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">{sec.q}</p>
-                          {vc ? (
-                            <p className={`text-base font-bold ${vc}`}>{sec.a}</p>
-                          ) : (
-                            <div className="text-xs text-slate-400 leading-relaxed space-y-1">
-                              {sec.a.split('\n').map((line, j) =>
-                                line.trim() ? <p key={j}>{sec.a.includes('\n') ? '• ' : ''}{line}</p> : null,
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                  <iframe
+                    ref={iframeRef}
+                    src={closingBlobUrl}
+                    onLoad={handleIframeLoad}
+                    className="w-full border-0 block"
+                    style={{ height: `${iframeHeight}px` }}
+                    sandbox="allow-same-origin"
+                    title={es ? 'Reporte de cierre' : 'Closing report'}
+                  />
+                </div>
+              )}
+
+              {/* ── Interactions ── */}
+              {rondas.length > 0 && (
+                <div className="px-4 sm:px-5 py-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      {es ? 'Detalle de Interacciones' : 'Interaction Detail'}
+                    </span>
+                  </div>
+                  {rondas.map((ronda) => (
+                    <RondaCard key={ronda.n} ronda={ronda} es={es} />
+                  ))}
+                </div>
+              )}
+
+              {/* Legacy secciones (old report format) */}
+              {report.Secciones?.length > 0 && (
+                <div className="px-4 sm:px-5 pb-4">
+                  <div className="border border-line/30 rounded-xl overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-line/20">
+                      <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        {es ? 'Evaluación Final' : 'Final Assessment'}
+                      </span>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      {report.Secciones.map((sec, i) => {
+                        const vc = verdictColor(sec.a)
+                        return (
+                          <div key={i}>
+                            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">{sec.q}</p>
+                            {vc ? (
+                              <p className={`text-base font-bold ${vc}`}>{sec.a}</p>
+                            ) : (
+                              <div className="text-xs text-slate-400 leading-relaxed space-y-1">
+                                {sec.a.split('\n').map((line, j) =>
+                                  line.trim() ? <p key={j}>{sec.a.includes('\n') ? '• ' : ''}{line}</p> : null,
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
-              {rondas.length === 0 && !report.Secciones?.length && (
+
+              {rondas.length === 0 && !report.Secciones?.length && !report.closing_analysis && (
                 <p className="text-sm text-slate-500 text-center py-8">{t('no_data')}</p>
               )}
             </>
