@@ -88,6 +88,7 @@ export interface SimReport {
   Titulo: string
   Rondas: SimRonda[]        // parsed interaction rounds 1–5
   Secciones: SimReportSection[]
+  closing_analysis: string | null  // raw HTML closing report from the platform
 }
 
 // ─────────────────────────────────────────────
