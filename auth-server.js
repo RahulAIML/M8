@@ -54,6 +54,20 @@ export async function initializeDatabase() {
       )
     `)
     console.log('[auth-db] Database initialized')
+
+    // Create default admin user for development
+    const adminEmail = 'buddhadeb@rolplay.ca'
+    const adminPassword = 'Rolplay@2026Admin'
+    const existingAdmin = await client.query('SELECT id FROM users WHERE email = $1', [adminEmail.toLowerCase()])
+    if (existingAdmin.rows.length === 0) {
+      const hash = await hashPassword(adminPassword)
+      await client.query(
+        `INSERT INTO users (email, password_hash, full_name, role, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, NOW(), NOW())`,
+        [adminEmail.toLowerCase(), hash, 'Rolplay Admin', 'admin']
+      )
+      console.log('[auth-db] Default admin user created (buddhadeb@rolplay.ca)')
+    }
   } finally {
     client.release()
   }
