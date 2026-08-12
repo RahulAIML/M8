@@ -1,8 +1,10 @@
-import { memo } from 'react'
-import { Globe, RefreshCw, Menu, ChevronDown } from 'lucide-react'
+import { memo, useState } from 'react'
+import { Globe, RefreshCw, Menu, ChevronDown, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAppStore, type Language } from '../../store'
 import { useTranslation } from '../../lib/i18n'
+import { useAuthContext } from '../AuthProvider'
 import { cn } from '../../lib/cn'
 
 const LANGS: { code: Language; label: string; flag: string }[] = [
@@ -16,6 +18,14 @@ export const TopBar = memo(function TopBar() {
   const toggleMobileMenu = useAppStore((s) => s.toggleMobileMenu)
   const t = useTranslation(language)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { user, logout } = useAuthContext()
+  const [showUserMenu, setShowUserMenu] = useState(false)
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10 shadow-sm">
@@ -63,16 +73,45 @@ export const TopBar = memo(function TopBar() {
           ))}
         </div>
 
-        {/* Admin user display */}
-        <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-            <span className="text-accent text-xs font-bold">A</span>
-          </div>
-          <div className="hidden sm:flex flex-col">
-            <span className="text-slate-700 text-xs font-semibold leading-tight">Admin</span>
-            <span className="text-slate-400 text-[10px] leading-tight">M8 Pharma</span>
-          </div>
-          <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+        {/* User menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-2 pl-2 border-l border-gray-200 hover:bg-gray-50 rounded-lg py-1 px-2 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+              <span className="text-accent text-xs font-bold">
+                {user?.full_name?.[0]?.toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="hidden sm:flex flex-col">
+              <span className="text-slate-700 text-xs font-semibold leading-tight">
+                {user?.full_name || 'User'}
+              </span>
+              <span className="text-slate-400 text-[10px] leading-tight">{user?.email}</span>
+            </div>
+            <ChevronDown className={cn(
+              'w-3.5 h-3.5 text-gray-400 transition-transform',
+              showUserMenu && 'rotate-180'
+            )} />
+          </button>
+
+          {/* Dropdown menu */}
+          {showUserMenu && (
+            <div className="absolute right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <p className="text-sm font-semibold text-slate-700">{user?.full_name || 'User'}</p>
+                <p className="text-xs text-slate-500">{user?.email}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

@@ -17,6 +17,31 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Validate token on mount
+  useEffect(() => {
+    const validateToken = async () => {
+      if (!token) return
+      try {
+        const response = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!response.ok) {
+          // Token is invalid or expired
+          localStorage.removeItem(TOKEN_KEY)
+          localStorage.removeItem(USER_KEY)
+          setToken(null)
+          setUser(null)
+        } else {
+          const data = await response.json()
+          setUser(data.user)
+        }
+      } catch {
+        // Network error — keep the token but don't force logout
+      }
+    }
+    validateToken()
+  }, [token])
+
   const login = useCallback(async (credentials: LoginCredentials) => {
     setIsLoading(true)
     setError(null)
