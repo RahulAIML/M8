@@ -4,6 +4,10 @@ import { Pool } from 'pg'
 
 let pool = null
 
+// All dashboards share one database, so every user row and every token is
+// scoped to one dashboard — a Sanfer account must not open Apotex.
+const DASHBOARD = process.env.DASHBOARD_NAME ?? 'M8'
+
 // Password strength validation (mirrors frontend validation)
 function validatePasswordStrength(password) {
   const errors = []
@@ -44,29 +48,52 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        dashboard VARCHAR(50) NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         full_name VARCHAR(255),
         role VARCHAR(50) DEFAULT 'user',
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT users_email_dashboard_key UNIQUE (email, dashboard)
       )
     `)
-    console.log('[auth-db] Database initialized')
 
-    // Create default admin user for development
+    // Migrate tables created before users were scoped per dashboard: the old
+    // schema had a bare UNIQUE(email), which would let one signup block that
+    // address on every other dashboard.
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS dashboard VARCHAR(50)`)
+    await client.query(`UPDATE users SET dashboard = $1 WHERE dashboard IS NULL`, [DASHBOARD])
+    await client.query(`ALTER TABLE users ALTER COLUMN dashboard SET NOT NULL`)
+    await client.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_email_key`)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'users_email_dashboard_key'
+        ) THEN
+          ALTER TABLE users ADD CONSTRAINT users_email_dashboard_key UNIQUE (email, dashboard);
+        END IF;
+      END $$
+    `)
+    console.log(`[auth-db] Database initialized for dashboard "${DASHBOARD}"`)
+
+    // Seed this dashboard's admin account
     const adminEmail = 'buddhadeb@rolplay.ca'
     const adminPassword = 'Rolplay@2026Admin'
-    const existingAdmin = await client.query('SELECT id FROM users WHERE email = $1', [adminEmail.toLowerCase()])
+    const existingAdmin = await client.query(
+      'SELECT id FROM users WHERE email = $1 AND dashboard = $2',
+      [adminEmail.toLowerCase(), DASHBOARD]
+    )
     if (existingAdmin.rows.length === 0) {
       const hash = await hashPassword(adminPassword)
       await client.query(
-        `INSERT INTO users (email, password_hash, full_name, role, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, NOW(), NOW())`,
-        [adminEmail.toLowerCase(), hash, 'Rolplay Admin', 'admin']
+        `INSERT INTO users (email, dashboard, password_hash, full_name, role, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+        [adminEmail.toLowerCase(), DASHBOARD, hash, 'Rolplay Admin', 'admin']
       )
-      console.log('[auth-db] Default admin user created (buddhadeb@rolplay.ca)')
+      console.log(`[auth-db] Admin account created for "${DASHBOARD}"`)
     }
   } finally {
     client.release()
@@ -99,6 +126,7 @@ export function signToken(user) {
   const payload = {
     user_id: user.id,
     email: user.email,
+    dashboard: DASHBOARD,
   }
   return jwt.sign(payload, secret, { expiresIn: '8h' })
 }
@@ -106,7 +134,11 @@ export function signToken(user) {
 export function verifyToken(token) {
   const secret = getJwtSecret()
   try {
-    return jwt.verify(token, secret)
+    const claims = jwt.verify(token, secret)
+    // The dashboards share a JWT_SECRET, so a signature alone does not prove
+    // the token was issued for this dashboard.
+    if (claims.dashboard !== DASHBOARD) return null
+    return claims
   } catch {
     return null
   }
@@ -115,8 +147,8 @@ export function verifyToken(token) {
 export async function findUserByEmail(email) {
   const p = initializePool()
   const result = await p.query(
-    'SELECT id, email, password_hash, full_name, role, created_at FROM users WHERE email = $1 AND is_active = TRUE LIMIT 1',
-    [email.toLowerCase()]
+    'SELECT id, email, password_hash, full_name, role, created_at FROM users WHERE email = $1 AND dashboard = $2 AND is_active = TRUE LIMIT 1',
+    [email.toLowerCase(), DASHBOARD]
   )
   return result.rows[0] || null
 }
@@ -124,8 +156,8 @@ export async function findUserByEmail(email) {
 export async function getUserPasswordHash(email) {
   const p = initializePool()
   const result = await p.query(
-    'SELECT password_hash FROM users WHERE email = $1 LIMIT 1',
-    [email.toLowerCase()]
+    'SELECT password_hash FROM users WHERE email = $1 AND dashboard = $2 LIMIT 1',
+    [email.toLowerCase(), DASHBOARD]
   )
   return result.rows[0]?.password_hash || null
 }
@@ -133,10 +165,10 @@ export async function getUserPasswordHash(email) {
 export async function createUser(email, passwordHash, fullName = '', role = 'user') {
   const p = initializePool()
   const result = await p.query(
-    `INSERT INTO users (email, password_hash, full_name, role, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, NOW(), NOW())
+    `INSERT INTO users (email, dashboard, password_hash, full_name, role, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
      RETURNING id, email, full_name, role, created_at`,
-    [email.toLowerCase(), passwordHash, fullName, role]
+    [email.toLowerCase(), DASHBOARD, passwordHash, fullName, role]
   )
   return result.rows[0]
 }
