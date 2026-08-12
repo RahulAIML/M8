@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthContext } from '../components/AuthProvider'
 import { validateEmail } from '../lib/password'
 import { AlertCircle } from 'lucide-react'
@@ -114,8 +114,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-700">
-            <p className="text-xs text-slate-400 text-center">
+          <div className="mt-6 pt-6 border-t border-slate-700 text-center">
+            <p className="text-sm text-slate-400 mb-4">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
+                Sign up
+              </Link>
+            </p>
+            <p className="text-xs text-slate-500">
               Protected dashboard. Please use your company credentials.
             </p>
           </div>

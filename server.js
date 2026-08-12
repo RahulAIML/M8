@@ -9,6 +9,7 @@ import {
   initializePool,
   initializeDatabase,
   loginHandler,
+  signupHandler,
   logoutHandler,
   meHandler,
 } from './auth-server.js'
@@ -56,6 +57,7 @@ app.use(bodyParser.json())
 
 // ─── Auth endpoints ───────────────────────────────────────────────────────
 app.post('/api/auth/login', loginHandler)
+app.post('/api/auth/signup', signupHandler)
 app.post('/api/auth/logout', logoutHandler)
 app.get('/api/auth/me', meHandler)
 
