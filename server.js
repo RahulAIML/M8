@@ -1,4 +1,5 @@
-// Serves dist/ as a static SPA, proxies /sanfer/* to upstream API, and handles authentication
+// Serves dist/ as a static SPA, proxies /m8/bridge/* to the upstream API behind
+// an auth check, and handles authentication
 import express from 'express'
 import { readFile } from 'fs/promises'
 import { join, extname } from 'path'
@@ -12,12 +13,12 @@ import {
   signupHandler,
   logoutHandler,
   meHandler,
+  requireAuth,
 } from './auth-server.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const DIST = join(__dirname, 'dist')
 const PORT = parseInt(process.env.PORT ?? '4174')
-const UPSTREAM = 'https://serv.aux-rolplay.com'
 const CACHE_TTL = 5 * 60 * 1000
 const DASHBOARD_NAME = process.env.DASHBOARD_NAME ?? 'M8'
 
@@ -88,11 +89,34 @@ app.post('/api/auth/signup', rateLimitAuth, signupHandler)
 app.post('/api/auth/logout', logoutHandler)
 app.get('/api/auth/me', meHandler)
 
-// ─── API proxy with cache ─────────────────────────────────────────────────
-app.get('/sanfer/*', async (req, res) => {
-  const key = req.url
-  const cached = apiCache.get(key)
+// ─── Upstream API proxy ───────────────────────────────────────────────────
+// Mirrors the proxy table in vite.config.ts. Vite's proxy only applies to the
+// dev server, so without this the built server has no route for these paths
+// and every data request falls through to the SPA fallback below.
+const PROXIES = [
+  {
+    prefix: '/m8/bridge',
+    target: 'https://rolplay.app',
+    rewrite: (p) => p.replace(/^\/m8\/bridge/, '/ajax'),
+  },
+]
 
+function matchProxy(pathname) {
+  return PROXIES.find(
+    (r) => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`),
+  )
+}
+
+async function proxyRequest(req, res, route) {
+  const search = req.originalUrl.slice(req.path.length)
+  const target = `${route.target}${route.rewrite(req.path)}${search}`
+  const isGet = req.method === 'GET'
+  // These endpoints carry their query in the POST body, so the body is part
+  // of the cache identity — keying on the URL alone would collide.
+  const payload = isGet ? '' : JSON.stringify(req.body ?? {})
+  const key = `${req.method} ${target} ${payload}`
+
+  const cached = apiCache.get(key)
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     res.setHeader('Content-Type', 'application/json')
     res.setHeader('X-Cache', 'HIT')
@@ -101,24 +125,36 @@ app.get('/sanfer/*', async (req, res) => {
   }
 
   try {
-    const upstream = await fetch(`${UPSTREAM}${req.url}`, {
-      headers: { Accept: 'application/json' },
+    const upstream = await fetch(target, {
+      method: req.method,
+      headers: isGet
+        ? { Accept: 'application/json' }
+        : { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: isGet ? undefined : payload,
     })
+    const body = await upstream.text()
     if (!upstream.ok) {
-      res.writeHead(upstream.status)
-      res.end(await upstream.text())
+      res.writeHead(upstream.status, { 'Content-Type': 'application/json' })
+      res.end(body)
       return
     }
-    const body = await upstream.text()
     const gz = gzipSync(body)
     apiCache.set(key, { body, gz, ts: Date.now() })
     res.setHeader('Content-Type', 'application/json')
     res.setHeader('X-Cache', 'MISS')
     send(req, res, body, gz)
   } catch (err) {
-    res.writeHead(502)
-    res.end(String(err))
+    res.writeHead(502, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ message: 'Upstream request failed', detail: String(err) }))
   }
+}
+
+// Dashboard data requires a token issued by this dashboard, so the numbers
+// are not readable by skipping the login screen.
+app.use((req, res, next) => {
+  const route = matchProxy(req.path)
+  if (!route) return next()
+  requireAuth(req, res, () => proxyRequest(req, res, route))
 })
 
 // ─── Static file serving ──────────────────────────────────────────────────

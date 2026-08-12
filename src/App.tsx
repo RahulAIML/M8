@@ -92,11 +92,15 @@ queryClient.getQueryCache().subscribe((event) => {
 // Combined with cache restore above: if cache is warm, components see data on
 // first render; if cold, requests are already in-flight when components mount.
 // The simulations key must match useSimulations' default-range key exactly.
+// Skipped without a token: the server refuses these paths, so prefetching for a
+// logged-out visitor would only produce 401s and bounce them off the login page.
 const { from: defFrom, to: defTo } = resolveEffectiveDates(null, null)
-queryClient.prefetchQuery({ queryKey: ['simulations', defFrom, defTo], queryFn: ({ signal }) => fetchSimulations(defFrom, defTo, signal), staleTime: STALE })
-queryClient.prefetchQuery({ queryKey: ['activities'],  queryFn: ({ signal }) => fetchActivities(signal),             staleTime: STALE })
-queryClient.prefetchQuery({ queryKey: ['members'],     queryFn: ({ signal }) => fetchMembers(signal),                staleTime: STALE })
-queryClient.prefetchQuery({ queryKey: ['admins'],      queryFn: ({ signal }) => fetchAdmins(signal),                 staleTime: STALE })
+if (localStorage.getItem('auth_token')) {
+  queryClient.prefetchQuery({ queryKey: ['simulations', defFrom, defTo], queryFn: ({ signal }) => fetchSimulations(defFrom, defTo, signal), staleTime: STALE })
+  queryClient.prefetchQuery({ queryKey: ['activities'],  queryFn: ({ signal }) => fetchActivities(signal),             staleTime: STALE })
+  queryClient.prefetchQuery({ queryKey: ['members'],     queryFn: ({ signal }) => fetchMembers(signal),                staleTime: STALE })
+  queryClient.prefetchQuery({ queryKey: ['admins'],      queryFn: ({ signal }) => fetchAdmins(signal),                 staleTime: STALE })
+}
 
 function PageFallback() {
   return (

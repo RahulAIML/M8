@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import './lib/authFetch' // must precede App: installs before its prefetches run
 import App from './App'
 import './index.css'
 

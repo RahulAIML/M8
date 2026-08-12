@@ -260,6 +260,21 @@ export async function signupHandler(req, res) {
   }
 }
 
+// Gate for the upstream data proxy: the dashboard's data must not be
+// reachable without a token issued by this dashboard.
+export function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Unauthorized' })
+  }
+  const claims = verifyToken(authHeader.slice(7))
+  if (!claims) {
+    return res.status(401).json({ message: 'Unauthorized' })
+  }
+  req.user = claims
+  next()
+}
+
 export async function meHandler(req, res) {
   try {
     const authHeader = req.headers.authorization
