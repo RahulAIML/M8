@@ -19,6 +19,7 @@ const DIST = join(__dirname, 'dist')
 const PORT = parseInt(process.env.PORT ?? '4174')
 const UPSTREAM = 'https://serv.aux-rolplay.com'
 const CACHE_TTL = 5 * 60 * 1000
+const DASHBOARD_NAME = process.env.DASHBOARD_NAME ?? 'M8'
 
 const app = express()
 const apiCache = new Map()
@@ -52,12 +53,38 @@ function send(req, res, payload, gz) {
   }
 }
 
+// Rate limiting for auth endpoints
+const authAttempts = new Map()
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress
+}
+function rateLimitAuth(req, res, next) {
+  const ip = getClientIp(req)
+  const now = Date.now()
+  const windowMs = 60 * 1000
+  const maxAttempts = 10
+  const key = `${ip}:${req.path}`
+  const attempts = authAttempts.get(key) || []
+  const recentAttempts = attempts.filter((t) => now - t < windowMs)
+  if (recentAttempts.length >= maxAttempts) {
+    return res.status(429).json({ message: 'Too many requests. Try again later.' })
+  }
+  authAttempts.set(key, [...recentAttempts, now])
+  next()
+}
+
 // Middleware
 app.use(bodyParser.json())
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('X-XSS-Protection', '1; mode=block')
+  next()
+})
 
 // ─── Auth endpoints ───────────────────────────────────────────────────────
-app.post('/api/auth/login', loginHandler)
-app.post('/api/auth/signup', signupHandler)
+app.post('/api/auth/login', rateLimitAuth, loginHandler)
+app.post('/api/auth/signup', rateLimitAuth, signupHandler)
 app.post('/api/auth/logout', logoutHandler)
 app.get('/api/auth/me', meHandler)
 
@@ -138,7 +165,7 @@ async function start() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Sanfer dashboard running on port ${PORT}`)
+    console.log(`${DASHBOARD_NAME} dashboard running on port ${PORT}`)
   })
 }
 

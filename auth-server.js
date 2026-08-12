@@ -2,8 +2,18 @@ import bcryptjs from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { Pool } from 'pg'
 
-// PostgreSQL connection pool
 let pool = null
+
+// Password strength validation (mirrors frontend validation)
+function validatePasswordStrength(password) {
+  const errors = []
+  if (password.length < 8) errors.push('Password must be at least 8 characters')
+  if (!/[A-Z]/.test(password)) errors.push('Password must contain an uppercase letter')
+  if (!/[a-z]/.test(password)) errors.push('Password must contain a lowercase letter')
+  if (!/[0-9]/.test(password)) errors.push('Password must contain a number')
+  if (!/[^a-zA-Z0-9]/.test(password)) errors.push('Password must contain a special character')
+  return { valid: errors.length === 0, errors }
+}
 
 export function initializePool() {
   if (pool) return pool
@@ -57,8 +67,21 @@ export async function verifyPassword(password, hash) {
   return bcryptjs.compare(password, hash)
 }
 
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    const isDev = process.env.NODE_ENV !== 'production'
+    if (isDev) {
+      console.warn('[auth] JWT_SECRET not set, using development default (UNSAFE)')
+      return 'dev-secret-change-in-production'
+    }
+    throw new Error('JWT_SECRET environment variable is required in production')
+  }
+  return secret
+}
+
 export function signToken(user) {
-  const secret = process.env.JWT_SECRET || 'dev-secret-change-in-production'
+  const secret = getJwtSecret()
   const payload = {
     user_id: user.id,
     email: user.email,
@@ -67,7 +90,7 @@ export function signToken(user) {
 }
 
 export function verifyToken(token) {
-  const secret = process.env.JWT_SECRET || 'dev-secret-change-in-production'
+  const secret = getJwtSecret()
   try {
     return jwt.verify(token, secret)
   } catch {
@@ -157,8 +180,9 @@ export async function signupHandler(req, res) {
       return res.status(400).json({ message: 'Email, password, and full name are required' })
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters' })
+    const strength = validatePasswordStrength(password)
+    if (!strength.valid) {
+      return res.status(400).json({ message: strength.errors[0] })
     }
 
     const existing = await findUserByEmail(email)
