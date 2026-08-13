@@ -153,14 +153,17 @@ export function signToken(user) {
 }
 
 export function verifyToken(token) {
-  const secret = getJwtSecret()
   try {
-    const claims = jwt.verify(token, secret)
+    const claims = jwt.verify(token, getJwtSecret())
     // The dashboards share a JWT_SECRET, so a signature alone does not prove
     // the token was issued for this dashboard.
     if (claims.dashboard !== DASHBOARD) return null
     return claims
   } catch {
+    // Reading the secret is inside the try so that a deployment missing
+    // JWT_SECRET refuses the request rather than throwing past the caller and
+    // answering 500. An unverifiable token fails closed; the login endpoint
+    // still reports the misconfiguration explicitly.
     return null
   }
 }
