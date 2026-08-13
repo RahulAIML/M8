@@ -176,12 +176,19 @@ app.get('*', async (req, res) => {
     res.setHeader('Content-Type', mime)
     if ((ext === '.js' || ext === '.css') && req.path.startsWith('/assets/')) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    } else if (mime.startsWith('text/html')) {
+      // index.html names the hashed bundles, so a cached copy pins the browser
+      // to the previous deployment's assets — a shipped change the user never
+      // sees. The assets above are immutable and content-hashed, so only this
+      // document has to be revalidated.
+      res.setHeader('Cache-Control', 'no-store, must-revalidate')
     }
     send(req, res, entry.data, entry.gz)
   } catch {
     try {
       const html = await readFile(join(DIST, 'index.html'))
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.setHeader('Cache-Control', 'no-store, must-revalidate')
       res.end(html)
     } catch {
       res.writeHead(404)

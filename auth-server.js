@@ -30,7 +30,10 @@ export function initializePool() {
   pool = new Pool({
     connectionString: dbUrl,
     ssl: dbUrl.includes('localhost') ? false : { rejectUnauthorized: false },
-    max: 10,
+    // A serverless deployment runs many short-lived instances, each with its
+    // own pool, so a large per-instance ceiling would exhaust the database's
+    // connection limit. A long-lived server keeps the bigger pool.
+    max: process.env.VERCEL ? 2 : 10,
     idleTimeoutMillis: 30000,
   })
 
@@ -98,6 +101,24 @@ export async function initializeDatabase() {
   } finally {
     client.release()
   }
+}
+
+// Serverless platforms have no boot step to run initializeDatabase(), so each
+// function instance ensures the schema once and reuses the result. The promise
+// is cached rather than a boolean so concurrent first requests wait on one
+// migration instead of racing each other.
+let readyPromise = null
+
+export function ensureDatabaseReady() {
+  if (!readyPromise) {
+    readyPromise = initializeDatabase().catch((err) => {
+      // Let the next request retry rather than caching a transient failure
+      // (a cold database, a paused instance) for the life of the process.
+      readyPromise = null
+      throw err
+    })
+  }
+  return readyPromise
 }
 
 export async function hashPassword(password) {

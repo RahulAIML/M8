@@ -83,11 +83,24 @@ export function useAuth() {
     } catch (err) {
       console.warn('Logout API failed:', err)
     } finally {
+      // Clear every key this origin holds, not just the credentials. The
+      // dashboard persists API responses to localStorage to paint instantly on
+      // reload, so removing only the token would leave the previous user's
+      // business data readable to whoever opens the browser next.
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch {
+        // Private-mode or blocked storage — the reload below still drops it.
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem(USER_KEY)
+      }
       setToken(null)
       setUser(null)
-      localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem(USER_KEY)
       setIsLoading(false)
+      // A full document load, rather than a client-side route change, so the
+      // in-memory React Query cache is discarded along with the stored copy.
+      window.location.assign('/login')
     }
   }, [])
 
