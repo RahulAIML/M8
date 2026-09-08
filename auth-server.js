@@ -83,7 +83,7 @@ export async function initializeDatabase() {
     console.log(`[auth-db] Database initialized for dashboard "${DASHBOARD}"`)
 
     // Seed this dashboard's admin account
-    const adminEmail = 'buddhadeb@rolplay.ca'
+    const adminEmail = 'admin+m8@rolplay.ca'
     const adminPassword = 'Rolplay@2026Admin'
     const existingAdmin = await client.query(
       'SELECT id FROM users WHERE email = $1 AND dashboard = $2',
