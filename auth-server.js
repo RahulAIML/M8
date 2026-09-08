@@ -5,8 +5,23 @@ import { Pool } from 'pg'
 let pool = null
 
 // All dashboards share one database, so every user row and every token is
-// scoped to one dashboard — a Sanfer account must not open Apotex.
-const DASHBOARD = process.env.DASHBOARD_NAME ?? 'M8'
+// scoped to one dashboard — a Sanfer account must not open Apotex. The name
+// comes from Render's env only; no per-repo hardcoded fallback, so the same
+// code works unmodified for any client deployment.
+function getDashboardName() {
+  const name = process.env.DASHBOARD_NAME
+  if (!name) {
+    const isDev = process.env.NODE_ENV !== 'production'
+    if (isDev) {
+      console.warn('[auth] DASHBOARD_NAME not set, using development default')
+      return 'dev'
+    }
+    throw new Error('DASHBOARD_NAME environment variable is required in production')
+  }
+  return name
+}
+
+const DASHBOARD = getDashboardName()
 
 // Password strength validation (mirrors frontend validation)
 function validatePasswordStrength(password) {
