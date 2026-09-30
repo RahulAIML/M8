@@ -41,8 +41,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center justify-center mb-8">
-          <img src="/logo_rolplay.png" alt="Rolplay" className="h-12 object-contain" />
+        <div className="flex items-center justify-center mb-12">
+          <img src="/logo_rolplay.png" alt="Rolplay" className="h-14 object-contain drop-shadow-lg" />
         </div>
 
         {/* Login Card */}
