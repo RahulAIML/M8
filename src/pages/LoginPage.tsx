@@ -42,10 +42,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white text-lg bg-gradient-to-br from-blue-500 to-purple-600">
-            M8
-          </div>
-          <span className="ml-3 font-bold text-xl text-white">M8 Dashboard</span>
+          <img src="/logo_rolplay.png" alt="Rolplay" className="h-12 object-contain" />
         </div>
 
         {/* Login Card */}
