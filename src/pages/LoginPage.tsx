@@ -30,7 +30,6 @@ export default function LoginPage() {
       await login({ email, password })
       navigate('/')
     } catch (err) {
-      // Error is already set by useAuth hook
       console.error('Login error:', err)
     }
   }
@@ -38,32 +37,30 @@ export default function LoginPage() {
   const displayError = fieldError || error
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'linear-gradient(135deg, #0f1c3f 0%, #162040 50%, #1a2744 100%)' }}>
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center justify-center mb-12">
-          <img src="/logo_rolplay.png" alt="Rolplay" className="h-14 object-contain drop-shadow-lg" />
+        <div className="flex items-center justify-center mb-10">
+          <img src="/logo_rolplay.png" alt="Rolplay" className="h-16 object-contain" />
         </div>
 
         {/* Login Card */}
-        <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
+        <div className="rounded-xl shadow-2xl p-8" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)' }}>
+          <div className="mb-7">
+            <h1 className="text-2xl font-bold text-white mb-1">Welcome Back</h1>
             <p className="text-sm text-slate-400">Sign in to your account to continue</p>
           </div>
 
-          {/* Error Banner */}
           {displayError && (
-            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="mb-5 p-3 rounded-lg flex items-start gap-3" style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)' }}>
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-400">{displayError}</p>
             </div>
           )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">
                 Email
               </label>
               <input
@@ -72,13 +69,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value.toLowerCase())}
                 placeholder="you@example.com"
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
                 disabled={isLoading}
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -88,16 +86,17 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 pr-10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                   disabled={isLoading}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
@@ -105,16 +104,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full py-2.5 px-4 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              style={{ background: 'linear-gradient(135deg, #cc1f1f 0%, #e53e3e 100%)' }}
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-700 text-center">
-            <p className="text-sm text-slate-400 mb-4">
+          <div className="mt-6 pt-6 text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <p className="text-sm text-slate-400 mb-3">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
+              <Link to="/signup" className="text-red-400 hover:text-red-300 font-medium transition-colors">
                 Sign up
               </Link>
             </p>
