@@ -40,36 +40,47 @@ export default function LoginPage() {
     <div
       className="min-h-screen flex items-center justify-center px-4 py-10"
       style={{
-        background: 'radial-gradient(ellipse 120% 80% at 50% 40%, rgba(180,20,30,0.07) 0%, transparent 60%), linear-gradient(160deg, #0b1424 0%, #0f1c36 45%, #111827 100%)',
+        background: 'linear-gradient(160deg, #060d1a 0%, #0a1628 50%, #0d1f3c 100%)',
       }}
     >
       <div className="w-full" style={{ maxWidth: 420 }}>
 
         {/* Logo */}
-        <div className="flex justify-center" style={{ marginBottom: 36 }}>
-          <img
-            src="/logo_rolplay.png"
-            alt="RolPlay"
-            style={{ height: 48, width: 'auto', maxWidth: 160, objectFit: 'contain' }}
-          />
+        <div className="flex justify-center" style={{ marginBottom: 32 }}>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 18,
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.12)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            }}
+          >
+            <img
+              src="/logo_rolplay.png"
+              alt="RolPlay"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
         </div>
 
         {/* Card */}
         <div
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 18,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.05) inset',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 20,
+            boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.06) inset',
             padding: '36px 36px 28px',
           }}
         >
           {/* Heading */}
           <div style={{ marginBottom: 28 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
               Welcome back
             </h1>
-            <p style={{ fontSize: 14, color: '#94a3b8', margin: '6px 0 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 14, color: '#94a3b8', margin: '8px 0 0', lineHeight: 1.5 }}>
               Sign in to your account to continue
             </p>
           </div>
@@ -77,15 +88,16 @@ export default function LoginPage() {
           {/* Error */}
           {displayError && (
             <div
+              role="alert"
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 10,
-                padding: '11px 14px',
+                padding: '12px 14px',
                 borderRadius: 10,
-                background: 'rgba(220,38,38,0.1)',
-                border: '1px solid rgba(220,38,38,0.25)',
-                marginBottom: 20,
+                background: 'rgba(220,38,38,0.12)',
+                border: '1px solid rgba(220,38,38,0.3)',
+                marginBottom: 22,
               }}
             >
               <AlertCircle size={15} style={{ color: '#f87171', flexShrink: 0, marginTop: 1 }} />
@@ -94,12 +106,12 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Email */}
             <div>
               <label
                 htmlFor="email"
-                style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 7 }}
+                style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 8 }}
               >
                 Email address
               </label>
@@ -113,11 +125,11 @@ export default function LoginPage() {
                 disabled={isLoading}
                 style={{
                   width: '100%',
-                  height: 46,
+                  height: 48,
                   padding: '0 14px',
                   borderRadius: 10,
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(255,255,255,0.05)',
+                  border: '1.5px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(15,28,60,0.6)',
                   color: '#fff',
                   fontSize: 14,
                   outline: 'none',
@@ -125,8 +137,8 @@ export default function LoginPage() {
                   transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = 'rgba(220,38,38,0.6)'
-                  e.target.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.12)'
+                  e.target.style.borderColor = 'rgba(220,38,38,0.7)'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.15)'
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = 'rgba(255,255,255,0.1)'
@@ -139,7 +151,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 7 }}
+                style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#cbd5e1', marginBottom: 8 }}
               >
                 Password
               </label>
@@ -154,11 +166,11 @@ export default function LoginPage() {
                   disabled={isLoading}
                   style={{
                     width: '100%',
-                    height: 46,
-                    padding: '0 44px 0 14px',
+                    height: 48,
+                    padding: '0 46px 0 14px',
                     borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(255,255,255,0.05)',
+                    border: '1.5px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(15,28,60,0.6)',
                     color: '#fff',
                     fontSize: 14,
                     outline: 'none',
@@ -166,8 +178,8 @@ export default function LoginPage() {
                     transition: 'border-color 0.15s, box-shadow 0.15s',
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = 'rgba(220,38,38,0.6)'
-                    e.target.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.12)'
+                    e.target.style.borderColor = 'rgba(220,38,38,0.7)'
+                    e.target.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.15)'
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = 'rgba(255,255,255,0.1)'
@@ -207,7 +219,7 @@ export default function LoginPage() {
               disabled={isLoading}
               style={{
                 width: '100%',
-                height: 46,
+                height: 48,
                 borderRadius: 10,
                 border: 'none',
                 background: isLoading
@@ -221,8 +233,9 @@ export default function LoginPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                transition: 'opacity 0.15s, transform 0.1s',
+                transition: 'opacity 0.15s',
                 marginTop: 4,
+                letterSpacing: '0.2px',
               }}
               onMouseEnter={(e) => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.opacity = '0.88' }}
               onMouseLeave={(e) => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.opacity = '1' }}
@@ -265,8 +278,16 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Spinner keyframe */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0 1000px rgba(15,28,60,0.95) inset !important;
+          -webkit-text-fill-color: #fff !important;
+          caret-color: #fff;
+        }
+      `}</style>
     </div>
   )
 }
