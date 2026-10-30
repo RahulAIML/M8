@@ -21,6 +21,7 @@ const DIST = join(__dirname, 'dist')
 const PORT = parseInt(process.env.PORT ?? '4174')
 const CACHE_TTL = 5 * 60 * 1000
 const DASHBOARD_NAME = process.env.DASHBOARD_NAME ?? 'M8'
+const SQL_TOKEN = process.env.SQL_TOKEN || ''
 
 const app = express()
 const apiCache = new Map()
@@ -128,8 +129,8 @@ async function proxyRequest(req, res, route) {
     const upstream = await fetch(target, {
       method: req.method,
       headers: isGet
-        ? { Accept: 'application/json' }
-        : { Accept: 'application/json', 'Content-Type': 'application/json' },
+        ? { Accept: 'application/json', Authorization: `Bearer ${SQL_TOKEN}` }
+        : { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${SQL_TOKEN}` },
       body: isGet ? undefined : payload,
     })
     const body = await upstream.text()

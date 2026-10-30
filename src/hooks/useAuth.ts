@@ -25,16 +25,17 @@ export function useAuth() {
         const response = await fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
         })
-        if (!response.ok) {
-          // Token is invalid or expired
+        if (response.status === 401 || response.status === 403) {
+          // Token is invalid or expired — clear session
           localStorage.removeItem(TOKEN_KEY)
           localStorage.removeItem(USER_KEY)
           setToken(null)
           setUser(null)
-        } else {
+        } else if (response.ok) {
           const data = await response.json()
           setUser(data.user)
         }
+        // 5xx or other errors: server is temporarily unavailable — keep the token
       } catch {
         // Network error — keep the token but don't force logout
       }
