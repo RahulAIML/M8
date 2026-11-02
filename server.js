@@ -134,6 +134,16 @@ async function proxyRequest(req, res, route) {
       body: isGet ? undefined : payload,
     })
     const body = await upstream.text()
+    // A 401/403 from the upstream means THIS SERVER's credential for it (SQL_TOKEN)
+    // was refused -- not that the visitor's session expired. The client logs the
+    // user out on any 401 from /m8/bridge, so relaying it would bounce a freshly
+    // signed-in user back to /login. Report it as a gateway error instead.
+    if (upstream.status === 401 || upstream.status === 403) {
+      console.error(`[proxy] upstream rejected credentials (${upstream.status}) for ${route.prefix}; check SQL_TOKEN`)
+      res.writeHead(502, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ message: 'Upstream rejected the dashboard credentials', code: 'UPSTREAM_AUTH', upstreamStatus: upstream.status }))
+      return
+    }
     if (!upstream.ok) {
       res.writeHead(upstream.status, { 'Content-Type': 'application/json' })
       res.end(body)
@@ -201,6 +211,7 @@ app.get('*', async (req, res) => {
 // Initialize database and start server
 async function start() {
   try {
+    if (!SQL_TOKEN) console.warn('[proxy] SQL_TOKEN is not set: data requests to the upstream will be rejected')
     initializePool()
     await initializeDatabase()
     console.log('[auth-db] Database ready')
