@@ -21,7 +21,7 @@ const DIST = join(__dirname, 'dist')
 const PORT = parseInt(process.env.PORT ?? '4174')
 const CACHE_TTL = 5 * 60 * 1000
 const DASHBOARD_NAME = process.env.DASHBOARD_NAME ?? 'M8'
-const SQL_TOKEN = process.env.SQL_TOKEN || ''
+const SQL_TOKEN = process.env.SQL_TOKEN || 'ROLPLAY-TEAM2026'
 
 const app = express()
 const apiCache = new Map()
@@ -84,13 +84,13 @@ app.use((req, res, next) => {
   next()
 })
 
-// ─── Auth endpoints ───────────────────────────────────────────────────────
+// ─── Auth endpoints ─────────────────────────────────────────
 app.post('/api/auth/login', rateLimitAuth, loginHandler)
 app.post('/api/auth/signup', rateLimitAuth, signupHandler)
 app.post('/api/auth/logout', logoutHandler)
 app.get('/api/auth/me', meHandler)
 
-// ─── Upstream API proxy ───────────────────────────────────────────────────
+// ─── Upstream API proxy ─────────────────────────────────────────────
 // Mirrors the proxy table in vite.config.ts. Vite's proxy only applies to the
 // dev server, so without this the built server has no route for these paths
 // and every data request falls through to the SPA fallback below.
@@ -129,8 +129,8 @@ async function proxyRequest(req, res, route) {
     const upstream = await fetch(target, {
       method: req.method,
       headers: isGet
-        ? { Accept: 'application/json', Authorization: `Bearer ${SQL_TOKEN}` }
-        : { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${SQL_TOKEN}` },
+        ? { Accept: 'application/json', Authorization: SQL_TOKEN }
+        : { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: SQL_TOKEN },
       body: isGet ? undefined : payload,
     })
     const body = await upstream.text()
@@ -158,7 +158,7 @@ app.use((req, res, next) => {
   requireAuth(req, res, () => proxyRequest(req, res, route))
 })
 
-// ─── Static file serving ──────────────────────────────────────────────────
+// ─── Static file serving ────────────────────────────────────────────
 app.get('*', async (req, res) => {
   let filePath = join(DIST, req.path)
   const ext = extname(filePath)
