@@ -47,8 +47,8 @@ export default function LoginPage() {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div
             style={{
-              width: 88,
-              height: 88,
+              width: 96,
+              height: 96,
               borderRadius: 22,
               overflow: 'hidden',
               margin: '0 auto 16px',
@@ -58,7 +58,7 @@ export default function LoginPage() {
             <img
               src="/logo_rolplay.png"
               alt="RolPlay"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
             />
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
